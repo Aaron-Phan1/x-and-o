@@ -48,22 +48,24 @@ board ={
 }
 --
 
---FILL COMPARTMENT W/ COLOUR WHEN TOUCHED
-local X, O = "X", "O"
+--FILL COMPARTMENT W/ X or O WHEN TOUCHED
+local EMPTY, X, O = 0, "X", "O"
 local whichTurn = X -- X is starting game
+local FONT = "Arial"
+local TEXT_SIZE = 20
 local function fill (event)
 if event.phase == "began" then
 
     for t = 1, 9 do
-    if event.x > board[t][3] and event.x < board [t][5] then
-        if event.y < board[t][4] and event.y > board[t][6] then
-        
-            r = d.newRect(board[t][3],board [t][6],w20,h20)
-                r:setFillColor(1,1,0)
-                r.anchorX=0
-                r.anchorY=0
-            print(whichTurn.." Cell Number: "..board[t][2])
-            whichTurn = whichTurn == X and O or X
+        if event.x > board[t][3] and event.x < board [t][5] then
+            if event.y < board[t][4] and event.y > board[t][6] then
+                
+                if board[t][7] == EMPTY then
+                    board[t][7] = whichTurn
+                    x_o = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
+                    print(whichTurn.." Cell Number: "..board[t][2])
+                    whichTurn = whichTurn == X and O or X
+                end
             end
         end
     end     
