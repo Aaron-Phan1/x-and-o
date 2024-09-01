@@ -47,29 +47,40 @@ board ={
 {"br",9, w60,h80,w80,h60,0}
 }
 --
+taps = 0-- track current move
 
---FILL COMPARTMENT W/ X or O WHEN TOUCHED
+-- RANDOMLY SELECT
+local function random_cell (taps) then 
+end
+
+-- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
+local function computer_fill_easy (taps, whichTurn) then
+end
+    
+-- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local EMPTY, X, O = 0, "X", "O"
 local whichTurn = X -- X is starting game
 local FONT = "Arial"
 local TEXT_SIZE = 20
 local function fill (event)
-if event.phase == "began" then
+    if event.phase == "began" then
 
-    for t = 1, 9 do
-        if event.x > board[t][3] and event.x < board [t][5] then
-            if event.y < board[t][4] and event.y > board[t][6] then
-                
-                if board[t][7] == EMPTY then
-                    board[t][7] = whichTurn
-                    x_o = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
-                    print(whichTurn.." Cell Number: "..board[t][2])
-                    whichTurn = whichTurn == X and O or X
+        for t = 1, 9 do
+            if event.x > board[t][3] and event.x < board [t][5] then
+                if event.y < board[t][4] and event.y > board[t][6] then
+                    
+                    if board[t][7] == EMPTY then
+                        board[t][7] = whichTurn
+                        x_o = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
+                        print(whichTurn.." Cell Number: "..board[t][2])
+                        whichTurn = whichTurn == X and O or X
+                        taps = taps + 1
+                        
+                    end
                 end
             end
-        end
-    end     
-end
+        end     
+    end
 
 end
 Runtime:addEventListener("touch", fill)
