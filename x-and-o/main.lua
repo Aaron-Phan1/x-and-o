@@ -34,27 +34,27 @@ tline.strokeWidth = 5
 --PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
 board ={
 
-{"tl", 1, w20, h40, w40, h20,0},
-{"tm",2, w40,h40,w60,h20,0},
-{"tr",3, w60,h40,w80,h20,0},
+{"tl", 1, w20, h40, w40, h20,0, nil},
+{"tm",2, w40,h40,w60,h20,0, nil},
+{"tr",3, w60,h40,w80,h20,0, nil},
 
-{"ml", 4, w20, h60, w40, h40,0},
-{"mm",5, w40,h60,w60,h40,0},
-{"mr",6, w60,h60,w80,h40,0},
+{"ml", 4, w20, h60, w40, h40,0, nil},
+{"mm",5, w40,h60,w60,h40,0, nil},
+{"mr",6, w60,h60,w80,h40,0, nil},
 
-{"bl", 7, w20, h80, w40, h60,0},
-{"bm",8, w40,h80,w60,h60,0},
-{"br",9, w60,h80,w80,h60,0}
+{"bl", 7, w20, h80, w40, h60,0, nil},
+{"bm",8, w40,h80,w60,h60,0, nil},
+{"br",9, w60,h80,w80,h60,0, nil}
 }
 --
 taps = 0-- track current move
 
 -- RANDOMLY SELECT
-local function random_cell (taps) then 
+local function random_cell (taps) 
 end
 
 -- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
-local function computer_fill_easy (taps, whichTurn) then
+local function computer_fill_easy (taps, whichTurn)
 end
     
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
@@ -70,8 +70,8 @@ local function fill (event)
                 if event.y < board[t][4] and event.y > board[t][6] then
                     
                     if board[t][7] == EMPTY then
-                        board[t][7] = whichTurn
-                        x_o = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
+                        board[t][7] = whichTurn -- X 
+                        board[t][8] = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
                         print(whichTurn.." Cell Number: "..board[t][2])
                         whichTurn = whichTurn == X and O or X
                         taps = taps + 1
