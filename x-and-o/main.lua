@@ -50,11 +50,21 @@ board ={
 taps = 0-- track current move
 
 -- RANDOMLY SELECT
-local function random_cell (taps) 
+local function random_cell (taps)
+    local choice = math.random(9 - taps)
+    local t = 0
+    repeat 
+        t = t + 1
+        if board[t][7] == EMPTY then
+            choice = choice - 1
+        end
+    until choice == 0
+    return t
 end
 
 -- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local function computer_fill_easy (taps, whichTurn)
+    local cell = random_cell(taps)
 end
     
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
