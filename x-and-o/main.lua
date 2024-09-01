@@ -46,14 +46,21 @@ board ={
 {"bm",8, w40,h80,w60,h60,0, nil},
 {"br",9, w60,h80,w80,h60,0, nil}
 }
---
-taps = 0-- track current move
 
--- RANDOMLY SELECT
-local function random_cell (taps)
-    local choice = math.random(9 - taps)
+-- GAME CONSTANTS
+local taps = 0 -- track current move
+local EMPTY, X, O = 0, "X", "O"
+local whichTurn = X -- X is starting game
+
+-- FONT CONSTANTS
+local FONT = "Arial"
+local TEXT_SIZE = 20
+
+-- RANDOMLY SELECT AN AVAILABLE CELL
+local function random_cell ()
+    local choice = math.random(9 - taps) -- select nth cell from available cells
     local t = 0
-    repeat 
+    repeat -- find nth available cell
         t = t + 1
         if board[t][7] == EMPTY then
             choice = choice - 1
@@ -63,29 +70,31 @@ local function random_cell (taps)
 end
 
 -- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
-local function computer_fill_easy (taps, whichTurn)
-    local cell = random_cell(taps)
+local function computer_fill_easy ()
+    if taps < 9 then
+        local t = random_cell()
+        board[t][7] = whichTurn -- O
+        board[t][8] = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
+        print("EASY COMPUTER ("..whichTurn..") Cell Number: "..board[t][2])
+        whichTurn = whichTurn == X and O or X
+        taps = taps + 1
+    end
 end
     
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
-local EMPTY, X, O = 0, "X", "O"
-local whichTurn = X -- X is starting game
-local FONT = "Arial"
-local TEXT_SIZE = 20
 local function fill (event)
     if event.phase == "began" then
 
         for t = 1, 9 do
             if event.x > board[t][3] and event.x < board [t][5] then
                 if event.y < board[t][4] and event.y > board[t][6] then
-                    
                     if board[t][7] == EMPTY then
                         board[t][7] = whichTurn -- X 
                         board[t][8] = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
-                        print(whichTurn.." Cell Number: "..board[t][2])
+                        print("Player ("..whichTurn..") Cell Number: "..board[t][2])
                         whichTurn = whichTurn == X and O or X
                         taps = taps + 1
-                        
+                        computer_fill_easy()
                     end
                 end
             end
