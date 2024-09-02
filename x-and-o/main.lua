@@ -48,7 +48,7 @@ board ={
 }
 
 -- GAME CONSTANTS
-local taps = 0 -- track current move
+local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O"
 local whichTurn = X -- X is starting game
 
@@ -80,6 +80,99 @@ local function computer_fill_easy ()
         taps = taps + 1
     end
 end
+
+-- COMPUTER TURN (HARD)
+--[[
+---If you or your opponent has two in a row*, play on the remaining square.
+Otherwise, if there is a move that creates two lines of two in a row, play that move.
+Otherwise, if the centre is free, play there.
+Otherwise, if your opponent has played in a corner, play the opposite corner.
+Otherwise, if there is a free corner, play there.
+Otherwise, play on any empty square.
+
+*”row” in this context means row, column or diagonal.
+--]]
+local function dia_map(row_index, col_index)
+
+    local map = {
+        [1] = {[1] = {1}, [3] = {2}},
+        [2] = {[2] = {1, 2}},
+        [3] = {[1] = {2}, [3] = {1}}
+    }
+
+    return map[row_index][col_index]
+end
+
+local function check_two_ina_row (game_board)
+    local EMPTY, X, O = 0, "X", "O"
+    local rows_table = {{[EMPTY]={0, 0}, X=0, O=0}, {[EMPTY]={0, 0}, X=0, O=0}, {[EMPTY]={0, 0}, X=0, O=0}}
+    local cols_table = {{[EMPTY]={0, 0}, X=0, O=0}, {[EMPTY]={0, 0}, X=0, O=0}, {[EMPTY]={0, 0}, X=0, O=0}}
+    local dia_table = {{[EMPTY]={0, 0}, X=0, O=0}, {[EMPTY]={0, 0}, X=0, O=0}}
+    local block_opp = nil
+
+    for cell_num, cell in ipairs(game_board) do
+
+        local zero_indexed = cell_num - 1
+        local row_index = math.floor(zero_indexed / 3) + 1
+        local col_index = (zero_indexed % 3) + 1
+        local diagonal_indices = dia_map(row_index, col_index)
+        
+        local key = cell[7] -- EMPTY/X/O
+        local is_EMPTY = key == EMPTY 
+
+        rows_table[row_index][key] = is_EMPTY and {rows_table[row_index][EMPTY][1] + 1, cell_num} 
+                                        or rows_table[row_index][key] + 1
+
+        cols_table[col_index][key] = is_EMPTY and {cols_table[col_index][EMPTY][1] + 1, cell_num} 
+                                        or cols_table[col_index][key] + 1
+
+        if diagonal_indices then
+            for _, dia_index in ipairs(diagonal_indices) do
+                dia_table[dia_index][key] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num}
+                                                or dia_table[dia_index][key] + 1
+            end
+        end
+
+        if col_index == 3 then
+            if rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][O] == 2 then
+                -- return cell number of empty cell to win
+                return rows_table[row_index][EMPTY][2] 
+            elseif rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][X] == 2 then
+                 -- save cell number of empty cell to defend against opponent's two in a row
+                block_opp = rows_table[row_index][EMPTY][2] 
+            end
+        end
+
+        if row_index == 3 then
+            if cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][O] == 2 then
+                -- return cell number of empty cell to win
+                return cols_table[col_index][EMPTY][2] 
+            elseif cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][X] == 2 then
+                 -- save cell number of empty cell to defend against opponent's two in a row
+                block_opp = cols_table[col_index][EMPTY][2] 
+            end
+        end
+
+        if row_index == 3 and diagonal_indices then
+            if dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][O] == 2 then
+                -- return cell number of empty cell to win
+                return dia_table[diagonal_indices[1]][EMPTY][2] 
+            elseif dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][X] == 2 then
+                 -- save cell number of empty cell to defend against opponent's two in a row
+                block_opp = dia_table[diagonal_indices[1]][EMPTY][2] 
+            end
+        end
+        
+    end
+    -- return defending move if any
+    return block_opp
+
+end
+
+local function computer_fill_hard ()
+    if taps < 9 then
+    end
+end
     
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local function fill (event)
@@ -94,7 +187,8 @@ local function fill (event)
                         print("Player ("..whichTurn..") Cell Number: "..board[t][2])
                         whichTurn = whichTurn == X and O or X
                         taps = taps + 1
-                        computer_fill_easy()
+                        hi = check_two_ina_row(board)
+
                     end
                 end
             end
