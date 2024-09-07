@@ -81,18 +81,10 @@ local function computer_fill_easy ()
     end
 end
 
--- COMPUTER TURN (HARD)
---[[
----If you or your opponent has two in a row*, play on the remaining square.
-Otherwise, if there is a move that creates two lines of two in a row, play that move.
-Otherwise, if the centre is free, play there.
-Otherwise, if your opponent has played in a corner, play the opposite corner.
-Otherwise, if there is a free corner, play there.
-Otherwise, play on any empty square.
+---- COMPUTER TURN (HARD) - Check functions
 
-*”row” in this context means row, column or diagonal.
---]]
-
+--If you or your opponent has two in a row*, play on the remaining square.
+-- *”row” in this context means row, column or diagonal.
 local function dia_map(row_index, col_index)
     -- returns diagonal indices (dia_table key) based on predefined map for row_index and col_index
     local map = {
@@ -111,7 +103,7 @@ local function check_two_ina_row (game_board)
     local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
     local block_opp = nil -- to store cell number for blocking an opponent's winning move
 
-    -- Tables to track the state of each row/column/diagonal
+    -- Tables to track the cell_states of each row/column/diagonal
     -- Each entry has a count for EMPTY cells and EMPTY cell position, X cells, and O cells
     local rows_table = {
         {[EMPTY]={0, nil}, X=0, O=0}, 
@@ -141,28 +133,28 @@ local function check_two_ina_row (game_board)
 
         local diagonal_indices = dia_map(row_index, col_index)
         
-        local key = cell[7] -- cell state (EMPTY/X/O)
-        local is_EMPTY = key == EMPTY 
+        local cell_state = cell[7] -- EMPTY/X/O
+        local is_EMPTY = cell_state == EMPTY 
 
         -- Increment the count for the cell state in row/col table, and dia table (if applicable) 
         -- If the cell is EMPTY, also record its position for future reference
-        rows_table[row_index][key] = is_EMPTY and {rows_table[row_index][EMPTY][1] + 1, cell_num} 
-                                        or rows_table[row_index][key] + 1
+        rows_table[row_index][cell_state] = is_EMPTY and {rows_table[row_index][EMPTY][1] + 1, cell_num} 
+                                        or rows_table[row_index][cell_state] + 1
 
-        cols_table[col_index][key] = is_EMPTY and {cols_table[col_index][EMPTY][1] + 1, cell_num} 
-                                        or cols_table[col_index][key] + 1
+        cols_table[col_index][cell_state] = is_EMPTY and {cols_table[col_index][EMPTY][1] + 1, cell_num} 
+                                        or cols_table[col_index][cell_state] + 1
 
         if diagonal_indices then
             -- for loop used, since current cell may belong to multiple diagonals (e.g., center cell)
             for _, dia_index in ipairs(diagonal_indices) do 
-                dia_table[dia_index][key] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num}
-                                                or dia_table[dia_index][key] + 1
+                dia_table[dia_index][cell_state] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num}
+                                                or dia_table[dia_index][cell_state] + 1
             end
         end
 
         -- Check if the current cell is the last in a row/column/diagonal
         -- and evaluate the respective tables for potential winning or defending moves
-        if col_index == 3 then
+        if col_index == 3 then -- last in a column = end of a row
             if rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][O] == 2 then
                 -- return cell number of empty cell to win
                 return rows_table[row_index][EMPTY][2] 
@@ -173,7 +165,7 @@ local function check_two_ina_row (game_board)
             end
         end
 
-        if row_index == 3 then
+        if row_index == 3 then -- last in a row = end of a column
             if cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][O] == 2 then
                 return cols_table[col_index][EMPTY][2] 
 
@@ -182,7 +174,7 @@ local function check_two_ina_row (game_board)
             end
         end
 
-        if row_index == 3 and diagonal_indices then
+        if row_index == 3 and diagonal_indices then -- last in a column and is on a diagonal = end of a diagonal
             if dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][O] == 2 then
                 return dia_table[diagonal_indices[1]][EMPTY][2] 
 
@@ -196,8 +188,67 @@ local function check_two_ina_row (game_board)
     return block_opp --return defending move if any was identified, otherwise returns nil
 end
 
+
+-- Otherwise, if there is a move that creates two lines of two in a row, play that move.
+-- Otherwise, if the centre is free, play there.
+local function check_centre(game_board) 
+    local EMPTY = 0
+    return game_board[5][7] == EMPTY and game_board[5][2]
+end
+
+-- Otherwise, if your opponent has played in a corner, play the opposite corner.
+local function check_op_corner (game_board) 
+    local EMPTY, X, O = 0, "X", "O" 
+    local op_corner_pairs = {{game_board[1], game_board[9]}, {game_board[3], game_board[7]}}
+
+    local dia_table = {
+        {[EMPTY]={0, nil}, X=0, O=0}, 
+        {[EMPTY]={0, nil}, X=0, O=0}
+    }
+
+    for dia_index, corner_pair in ipairs(op_corner_pairs) do
+        for i, cell in ipairs(corner_pair) do
+            local cell_num = cell[2]
+            local cell_state = cell[7] -- EMPTY/X/O
+            local is_EMPTY = cell_state == EMPTY 
+            
+            dia_table[dia_index][cell_state] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num} 
+                                                or dia_table[dia_index][cell_state] + 1
+            if i == 2 then
+                if dia_table[dia_index][EMPTY][1] == 1 and dia_table[dia_index][X] == 1 then
+                    return dia_table[dia_index][EMPTY][2] 
+                end
+            end
+        end
+    end
+    return false
+end
+
+-- Otherwise, if there is a free corner, play there.
+local function check_free_corner (game_board) 
+    local EMPTY = 0
+
+    local c1_is_EMPTY = game_board[1][7] == EMPTY
+    local c3_is_EMPTY = game_board[3][7] == EMPTY
+    local c6_is_EMPTY = game_board[7][7] == EMPTY
+    local c9_is_EMPTY = game_board[9][7] == EMPTY
+
+    return (c1_is_EMPTY and game_board[1][2]) or (c3_is_EMPTY and game_board[3][2]) or 
+           (c6_is_EMPTY and game_board[7][2]) or (c9_is_EMPTY and game_board[9][2]) 
+end
+
+-- Otherwise, play on any empty square.
+
+
+
+
+
+
+
+
 local function computer_fill_hard ()
     if taps < 9 then
+
     end
 end
 
