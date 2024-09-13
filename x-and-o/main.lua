@@ -190,6 +190,96 @@ end
 
 
 -- Otherwise, if there is a move that creates two lines of two in a row, play that move.
+function check_create_two_lines (game_board)    
+    local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
+
+    -- Tables to track the cell_states of each row/column/diagonal
+    -- Each entry has a count for EMPTY cells and EMPTY cell position, X cells, and O cells
+    local rows_table = {
+        {[EMPTY]={0, {}}, X={0}, O={0}}, 
+        {[EMPTY]={0, {}}, X={0}, O={0}}, 
+        {[EMPTY]={0, {}}, X={0}, O={0}}
+    }
+
+    local cols_table = {
+        {[EMPTY]={0, {}}, X={0}, O={0}}, 
+        {[EMPTY]={0, {}}, X={0}, O={0}}, 
+        {[EMPTY]={0, {}}, X={0}, O={0}}
+    }
+
+    local dia_table = {
+        {[EMPTY]={0, {}}, X={0}, O={0}}, 
+        {[EMPTY]={0, {}}, X={0}, O={0}}
+    }
+
+    -- Iterate over each cell in the game board
+    for cell_num, cell in ipairs(game_board) do
+        -- Convert cell index to zero-based index for modulo/floor calculations
+        local zero_indexed = cell_num - 1
+
+        -- Calculate one-based row and column indices
+        local row_index = math.floor(zero_indexed / 3) + 1
+        local col_index = (zero_indexed % 3) + 1
+
+        local diagonal_indices = dia_map(row_index, col_index)
+
+        local cell_state = cell[7] -- EMPTY/X/O
+        local is_EMPTY = cell_state == EMPTY 
+
+        -- Increment the count for the cell state in row/col table, and dia table (if applicable) 
+        -- If the cell is EMPTY, also record its position for future reference
+
+        print(cell_num, row_index, cell_state)
+        print(type(cell[7]), type(0))
+        print(rows_table[2][0][1])
+        print(cell[7] == EMPTY)
+        print(rows_table[row_index][cell_state][1])
+        -- print(rows_table[row_index][cell_state][1])
+
+        rows_table[row_index][cell_state][1] = rows_table[row_index][cell_state][1] + 1
+        cols_table[col_index][cell_state][1] = cols_table[col_index][cell_state][1] + 1
+
+        if is_EMPTY then 
+            table.insert(rows_table[row_index][EMPTY][2], {cell_number=cell_num, row=row_index, col=col_index})
+        end
+
+        if diagonal_indices then
+            -- for loop used, since current cell may belong to multiple diagonals (e.g., center cell)
+            for _, dia_index in ipairs(diagonal_indices) do 
+                dia_table[dia_index][cell_state][1] = dia_table[dia_index][cell_state][1] + 1
+                if is_EMPTY then 
+                    table.insert(dia_table[dia_index][EMPTY][2], {cell_number=cell_num, row=row_index, col=col_index}) 
+                end
+            end
+        end
+    end
+
+    for _, row in ipairs(rows_table) do
+        if row[EMPTY][1] == 2 and row[O][1] == 1 then
+            for _, empty_row_cell in ipairs(row[EMPTY][2]) do
+                if cols_table[empty_row_cell.col][EMPTY][1] == 2 and cols_table[empty_row_cell.col][O][1] == 1 then
+                    return empty_row_cell.cell_number
+                end
+            end
+        end
+    end
+    
+    for _, dia in ipairs(dia_table) do
+        if dia[EMPTY][1] == 2 and dia[O][1] == 1 then
+            for _, empty_dia_cell in ipairs(dia[EMPTY][2]) do
+                if rows_table[empty_dia_cell.row][EMPTY][1] == 2 and rows_table[empty_dia_cell.row][O][1] == 1 then
+                    return empty_dia_cell.cell_number
+                end
+                if cols_table[empty_dia_cell.col][EMPTY][1] == 2 and cols_table[empty_dia_cell.col][O][1] == 1 then
+                    return empty_dia_cell.cell_number
+                end
+            end
+        end
+    end
+    return false
+end
+        
+
 -- Otherwise, if the centre is free, play there.
 local function check_centre(game_board) 
     local EMPTY = 0
