@@ -69,15 +69,21 @@ local function random_cell ()
     return t
 end
 
+-- Play a move
+local function play_move (cell_num, difficulty)
+    local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
+                 or difficulty == "player" and "PLAYER"
+    board[cell_num][7] = whichTurn -- O
+    board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
+    print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
+    whichTurn = whichTurn == X and O or X
+    taps = taps + 1
+end
 -- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local function computer_fill_easy ()
     if taps < 9 then
         local t = random_cell()
-        board[t][7] = whichTurn -- O
-        board[t][8] = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
-        print("EASY COMPUTER ("..whichTurn..") Cell Number: "..board[t][2])
-        whichTurn = whichTurn == X and O or X
-        taps = taps + 1
+        play_move(t, 'easy')
     end
 end
 
@@ -338,6 +344,8 @@ end
 
 local function computer_fill_hard ()
     if taps < 9 then
+        
+        if 
 
     end
 end
@@ -351,12 +359,7 @@ local function fill (event)
                 if event.y < board[t][4] and event.y > board[t][6] then
                     if board[t][7] == EMPTY then
 
-                        board[t][7] = whichTurn -- X 
-                        board[t][8] = d.newText(whichTurn, board[t][3] + w20 / 2, board[t][6] + h20 / 2, FONT, TEXT_SIZE)
-                        print("Player ("..whichTurn..") Cell Number: "..board[t][2])
 
-                        taps = taps + 1
-                        whichTurn = whichTurn == X and O or X
 
                     end
                 end
