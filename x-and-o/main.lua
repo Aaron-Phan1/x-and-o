@@ -56,19 +56,6 @@ local whichTurn = X -- X is starting game
 local FONT = "Arial"
 local TEXT_SIZE = 20
 
--- RANDOMLY SELECT AN AVAILABLE CELL
-local function random_cell ()
-    local choice = math.random(9 - taps) -- select nth cell from available cells
-    local t = 0
-    repeat -- find nth available cell
-        t = t + 1
-        if board[t][7] == EMPTY then
-            choice = choice - 1
-        end
-    until choice == 0
-    return t
-end
-
 -- Play a move
 local function play_move (cell_num, difficulty)
     local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
@@ -79,18 +66,24 @@ local function play_move (cell_num, difficulty)
     whichTurn = whichTurn == X and O or X
     taps = taps + 1
 end
--- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
-local function computer_fill_easy ()
-    if taps < 9 then
-        local t = random_cell()
-        play_move(t, 'easy')
-    end
-end
 
----- COMPUTER TURN (HARD) - Check functions
+--[[ 
+COMPUTER HARD MODE Logic
+Pseudocode Strategy for Win (at best) or Draw (at worst):**
+    [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
+    [CHECK 2] - Otherwise, if there is a move that creates two lines of two in a row, play that move.
+    [CHECK 3] - Otherwise, if the centre is free, play there.
+    [CHECK 4] - Otherwise, if your opponent has played in a corner, play the opposite corner.
+    [CHECK 5] - Otherwise, if there is a free corner, play there.
+    [CHECK 6] - Otherwise, play on any empty square.
 
---If you or your opponent has two in a row*, play on the remaining square.
--- *”row” in this context means row, column or diagonal.
+*”row” in this context means row, column or diagonal.
+
+**Taken from Assignment Brief
+--]]
+
+
+-- [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
 local function dia_map(row_index, col_index)
     -- returns diagonal indices (dia_table key) based on predefined map for row_index and col_index
     local map = {
@@ -194,8 +187,7 @@ local function check_two_ina_row (game_board)
     return block_opp --return defending move if any was identified, otherwise returns nil
 end
 
-
--- Otherwise, if there is a move that creates two lines of two in a row, play that move.
+-- [CHECK 2] - Otherwise, if there is a move that creates two lines of two in a row, play that move.
 function check_create_two_lines (game_board)    
     local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
 
@@ -280,13 +272,13 @@ function check_create_two_lines (game_board)
 end
         
 
--- Otherwise, if the centre is free, play there.
+-- [CHECK 3] - Otherwise, if the centre is free, play there.
 local function check_centre(game_board) 
     local EMPTY = 0
     return game_board[5][7] == EMPTY and game_board[5][2]
 end
 
--- Otherwise, if your opponent has played in a corner, play the opposite corner.
+-- [CHECK 4] - Otherwise, if your opponent has played in a corner, play the opposite corner.
 local function check_op_corner (game_board) 
     local EMPTY, X, O = 0, "X", "O" 
     local op_corner_pairs = {{game_board[1], game_board[9]}, {game_board[3], game_board[7]}}
@@ -314,7 +306,7 @@ local function check_op_corner (game_board)
     return false
 end
 
--- Otherwise, if there is a free corner, play there.
+-- [CHECK 5] - Otherwise, if there is a free corner, play there.
 local function check_free_corner (game_board) 
     local EMPTY = 0
 
@@ -327,22 +319,45 @@ local function check_free_corner (game_board)
            (c6_is_EMPTY and game_board[7][2]) or (c9_is_EMPTY and game_board[9][2]) 
 end
 
--- Otherwise, play on any empty square.
+-- [CHECK 6] - Otherwise, play on any empty square (Also used in easy mode).
 
+local function random_cell ()
+    local choice = math.random(9 - taps) -- select nth cell from available cells
+    local t = 0
+    repeat -- find nth available cell
+        t = t + 1
+        if board[t][7] == EMPTY then
+            choice = choice - 1
+        end
+    until choice == 0
+    return t
+end
 
+-- COMPUTER TURN (HARD) 
 
-
-
-
-
+-- List of check functions involved in hard-mode logic from top to bottom
+local hard_checks = {check_two_ina_row, check_two_ina_row, check_centre, check_op_corner, check_free_corner, random_cell}
 
 local function computer_fill_hard ()
     if taps < 9 then
-        
-        if 
-
+        for _, check_func in ipairs(hard_checks) do
+            local check = check_func(board)
+            if check then 
+                play_move(check, "hard")
+                return
+            end
+        end
     end
 end
+
+-- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
+local function computer_fill_easy ()
+    if taps < 9 then
+        local t = random_cell()
+        play_move(t, 'easy')
+    end
+end
+
 
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local function fill (event)
@@ -352,10 +367,12 @@ local function fill (event)
             if event.x > board[t][3] and event.x < board [t][5] then
                 if event.y < board[t][4] and event.y > board[t][6] then
                     if board[t][7] == EMPTY then
+                        play_move(t, "player")
+                        computer_fill_hard()
 
                             
 
-                    end
+                    end  
                 end
             end
         end     
