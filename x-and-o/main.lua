@@ -235,12 +235,6 @@ function check_create_two_lines (game_board)
         -- Increment the count for the cell state in row/col table, and dia table (if applicable) 
         -- If the cell is EMPTY, also record its position for future reference
 
-        print(cell_num, row_index, cell_state)
-        print(type(cell[7]), type(0))
-        print(rows_table[2][0][1])
-        print(cell[7] == EMPTY)
-        print(rows_table[row_index][cell_state][1])
-        -- print(rows_table[row_index][cell_state][1])
 
         rows_table[row_index][cell_state][1] = rows_table[row_index][cell_state][1] + 1
         cols_table[col_index][cell_state][1] = cols_table[col_index][cell_state][1] + 1
@@ -359,7 +353,7 @@ local function fill (event)
                 if event.y < board[t][4] and event.y > board[t][6] then
                     if board[t][7] == EMPTY then
 
-
+                            
 
                     end
                 end
