@@ -122,15 +122,11 @@ Pseudocode Strategy for Win (at best) or Draw (at worst):**
 **Taken from Assignment Brief
 --]]
 
--- variables used in computer move logic
-local function initalise_variables(curr_turn)
-    local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
-    local curr = curr_turn -- computer turn's cell state
-    local opp = curr_turn == X and O or X -- opponent's cell state
-
+-- tables used in hard-logic check 1 & 2
+local function initalise_tables()
     -- Tables to track the cell_states of each row/column/diagonal
     -- Each entry has a count for EMPTY cells, X cells, and O cells
-    -- EMPTY key also has a table to be used flexibly e.g., to store cell numbers
+    -- EMPTY key also has a table that can be used flexibly e.g., to store cell numbers
     local rows_table = {
         {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
         {[EMPTY]={0, {}}, [X]={0}, [O]={0}},
@@ -148,15 +144,18 @@ local function initalise_variables(curr_turn)
         {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
     }
 
-    return EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table
+    return rows_table, cols_table, dia_table
 end
 
 -- [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
 local function check_two_ina_row (game_board, curr_turn)
     -- Prioritises winning over blocking opponent
-
+    -- variables are declared here to make the function easier to test
+    local EMPTY, X, O = 0, "X", "O"
+    local curr = curr_turn
+    local opp = curr_turn == X and O or X
     local block_opp = nil -- to store cell number for blocking an opponent's winning move
-    local EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table = initalise_variables(curr_turn)
+    local rows_table, cols_table, dia_table = initalise_tables(curr_turn)
 
     -- Iterate over each cell in the game board
     for cell_num, cell in ipairs(game_board) do
@@ -231,7 +230,10 @@ end
 
 -- [CHECK 2] - Otherwise, if there is a move that creates two lines of two in a row, play that move.
 function check_create_two_lines (game_board, curr_turn)    
-    local EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table = initalise_variables(curr_turn)
+    local EMPTY, X, O = 0, "X", "O"
+    local curr = curr_turn
+    local opp = curr_turn == X and O or X
+    local rows_table, cols_table, dia_table = initalise_tables()
     -- Iterate over each cell in the game board
     for cell_num, cell in ipairs(game_board) do
         -- Convert cell index to zero-based index for modulo/floor calculations
@@ -294,13 +296,14 @@ end
 
 -- [CHECK 3] - Otherwise, if the centre is free, play there.
 local function check_centre(game_board) 
-    local EMPTY = initalise_variables()
+    local EMPTY = 0
     return game_board[5][7] == EMPTY and game_board[5][2]
 end
 
 -- [CHECK 4] - Otherwise, if your opponent has played in a corner, play the opposite corner.
 local function check_op_corner (game_board, curr_turn) 
-    local EMPTY, _, _, _, opp = initalise_variables(curr_turn)
+    local EMPTY, X, O = 0, "X", "O"
+    local opp = curr_turn == X and O or X
     if game_board[1][7] == EMPTY and game_board[9][7] == opp then
         return game_board[1][2]
     elseif game_board[3][7] == EMPTY and game_board[7][7] == opp then
@@ -314,7 +317,7 @@ end
 
 -- [CHECK 5] - Otherwise, if there is a free corner, play there.
 local function check_free_corner (game_board) 
-    local EMPTY = initalise_variables()
+    local EMPTY = 0
     return (game_board[1][7] == EMPTY and game_board[1][2]) or 
            (game_board[3][7] == EMPTY and game_board[3][2]) or
            (game_board[7][7] == EMPTY and game_board[7][2]) or 
