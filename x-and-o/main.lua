@@ -51,20 +51,60 @@ board ={
 local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O"
 local whichTurn = X -- X is starting game
+local game_state = "in_progress"
 
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
 
+-- used for board validation functions
+local function dia_map(row_index, col_index)
+    -- returns diagonal indices (dia_table key) based on predefined map for row_index and col_index
+    local map = {
+        [1] = {[1] = {1}, [3] = {2}},
+        [2] = {[2] = {1, 2}},
+        [3] = {[1] = {2}, [3] = {1}}
+    }
+
+    return map[row_index][col_index]
+end
+
+-- Check for winner
+local function check_for_win (game_board, difficulty)
+    win = nil
+    if (game_board[1][7] == whichTurn and game_board[2][7] == whichTurn and game_board[3][7] == whichTurn) or
+       (game_board[4][7] == whichTurn and game_board[5][7] == whichTurn and game_board[6][7] == whichTurn) or
+       (game_board[7][7] == whichTurn and game_board[8][7] == whichTurn and game_board[9][7] == whichTurn) or
+       (game_board[1][7] == whichTurn and game_board[4][7] == whichTurn and game_board[7][7] == whichTurn) or
+       (game_board[2][7] == whichTurn and game_board[5][7] == whichTurn and game_board[8][7] == whichTurn) or
+       (game_board[3][7] == whichTurn and game_board[6][7] == whichTurn and game_board[9][7] == whichTurn) or
+       (game_board[1][7] == whichTurn and game_board[5][7] == whichTurn and game_board[9][7] == whichTurn) or
+       (game_board[3][7] == whichTurn and game_board[5][7] == whichTurn and game_board[7][7] == whichTurn) then
+        win = true
+    end
+    if win == true then
+        if difficulty == "player" then
+            print("You Win")
+            game_state = "player_won"
+        else 
+            print("You Lose")
+            game_state = "ai_won"
+        end
+    end
+end
+
 -- Play a move
 local function play_move (cell_num, difficulty)
-    local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
-                 or difficulty == "player" and "PLAYER"
-    board[cell_num][7] = whichTurn -- O
-    board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
-    print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
-    whichTurn = whichTurn == X and O or X
-    taps = taps + 1
+    if game_state == "in_progress" then
+        local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
+                    or difficulty == "player" and "PLAYER"
+        board[cell_num][7] = whichTurn -- O
+        board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
+        print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
+        check_for_win(board, difficulty)
+        whichTurn = whichTurn == X and O or X
+        taps = taps + 1
+    end
 end
 
 --[[ 
@@ -84,17 +124,6 @@ Pseudocode Strategy for Win (at best) or Draw (at worst):**
 
 
 -- [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
-local function dia_map(row_index, col_index)
-    -- returns diagonal indices (dia_table key) based on predefined map for row_index and col_index
-    local map = {
-        [1] = {[1] = {1}, [3] = {2}},
-        [2] = {[2] = {1, 2}},
-        [3] = {[1] = {2}, [3] = {1}}
-    }
-
-    return map[row_index][col_index]
-end
-
 local function check_two_ina_row (game_board)
     -- Check if computer or opponent has two in a row*, play on the remaining square.
     -- Prioritises winning over blocking opponent
@@ -362,7 +391,6 @@ end
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local function fill (event)
     if event.phase == "began" then
-
         for t = 1, 9 do
             if event.x > board[t][3] and event.x < board [t][5] then
                 if event.y < board[t][4] and event.y > board[t][6] then
