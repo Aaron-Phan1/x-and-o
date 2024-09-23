@@ -309,43 +309,24 @@ end
 
 -- [CHECK 4] - Otherwise, if your opponent has played in a corner, play the opposite corner.
 local function check_op_corner (game_board) 
-    local EMPTY, X, O = 0, "X", "O" 
-    local op_corner_pairs = {{game_board[1], game_board[9]}, {game_board[3], game_board[7]}}
-
-    local dia_table = {
-        {[EMPTY]={0, nil}, X=0, O=0}, 
-        {[EMPTY]={0, nil}, X=0, O=0}
-    }
-
-    for dia_index, corner_pair in ipairs(op_corner_pairs) do
-        for i, cell in ipairs(corner_pair) do
-            local cell_num = cell[2]
-            local cell_state = cell[7] -- EMPTY/X/O
-            local is_EMPTY = cell_state == EMPTY 
-            
-            dia_table[dia_index][cell_state] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num} 
-                                                or dia_table[dia_index][cell_state] + 1
-            if i == 2 then
-                if dia_table[dia_index][EMPTY][1] == 1 and dia_table[dia_index][X] == 1 then
-                    return dia_table[dia_index][EMPTY][2] 
-                end
-            end
-        end
+    if game_board[1][7] == EMPTY and game_board[9][7] == X then
+        return game_board[1][2]
+    elseif game_board[3][7] == EMPTY and game_board[7][7] == X then
+        return game_board[3][2]
+    elseif game_board[7][7] == EMPTY and game_board[3][7] == X then
+        return game_board[7][2]
+    elseif game_board[9][7] == EMPTY and game_board[1][7] == X then
+        return game_board[9][2]
     end
-    return false
 end
 
 -- [CHECK 5] - Otherwise, if there is a free corner, play there.
 local function check_free_corner (game_board) 
     local EMPTY = 0
-
-    local c1_is_EMPTY = game_board[1][7] == EMPTY
-    local c3_is_EMPTY = game_board[3][7] == EMPTY
-    local c6_is_EMPTY = game_board[7][7] == EMPTY
-    local c9_is_EMPTY = game_board[9][7] == EMPTY
-
-    return (c1_is_EMPTY and game_board[1][2]) or (c3_is_EMPTY and game_board[3][2]) or 
-           (c6_is_EMPTY and game_board[7][2]) or (c9_is_EMPTY and game_board[9][2]) 
+    return (game_board[1][7] == EMPTY and game_board[1][2]) or 
+           (game_board[3][7] == EMPTY and game_board[3][2]) or
+           (game_board[7][7] == EMPTY and game_board[7][2]) or 
+           (game_board[9][7] == EMPTY and game_board[9][2]) 
 end
 
 -- [CHECK 6] - Otherwise, play on any empty square (Also used in easy mode).
