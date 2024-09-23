@@ -346,7 +346,7 @@ end
 -- COMPUTER TURN (HARD) 
 
 -- List of check functions involved in hard-mode logic from top to bottom
-local hard_checks = {check_two_ina_row, check_two_ina_row, check_centre, check_op_corner, check_free_corner, random_cell}
+local hard_checks = {check_two_ina_row, check_create_two_lines, check_centre, check_op_corner, check_free_corner, random_cell}
 
 local function computer_fill_hard ()
     if taps < 9 then
