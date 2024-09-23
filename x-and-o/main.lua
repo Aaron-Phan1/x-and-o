@@ -122,35 +122,41 @@ Pseudocode Strategy for Win (at best) or Draw (at worst):**
 **Taken from Assignment Brief
 --]]
 
-
--- [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
-local function check_two_ina_row (game_board, curr_turn)
-    -- Check if computer or opponent has two in a row*, play on the remaining square.
-    -- Prioritises winning over blocking opponent
-    
+-- variables used in computer move logic
+local function initalise_variables(curr_turn)
     local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
     local curr = curr_turn -- computer turn's cell state
     local opp = curr_turn == X and O or X -- opponent's cell state
-    local block_opp = nil -- to store cell number for blocking an opponent's winning move
 
     -- Tables to track the cell_states of each row/column/diagonal
-    -- Each entry has a count for EMPTY cells and EMPTY cell position, X cells, and O cells
+    -- Each entry has a count for EMPTY cells, X cells, and O cells
+    -- EMPTY key also has a table to be used flexibly e.g., to store cell numbers
     local rows_table = {
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}, 
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}, 
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}},
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
     }
 
     local cols_table = {
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}, 
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}, 
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}},
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
     }
 
     local dia_table = {
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}, 
-        {[EMPTY]={0, nil}, [X]=0, [O]=0}
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
+        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
     }
+
+    return EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table
+end
+
+-- [CHECK 1] - If you or your opponent has two in a row*, play on the remaining square. 
+local function check_two_ina_row (game_board, curr_turn)
+    -- Prioritises winning over blocking opponent
+
+    local block_opp = nil -- to store cell number for blocking an opponent's winning move
+    local EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table = initalise_variables(curr_turn)
 
     -- Iterate over each cell in the game board
     for cell_num, cell in ipairs(game_board) do
@@ -168,48 +174,53 @@ local function check_two_ina_row (game_board, curr_turn)
 
         -- Increment the count for the cell state in row/col table, and dia table (if applicable) 
         -- If the cell is EMPTY, also record its position for future reference
-        rows_table[row_index][cell_state] = is_EMPTY and {rows_table[row_index][EMPTY][1] + 1, cell_num} 
-                                        or rows_table[row_index][cell_state] + 1
+        rows_table[row_index][cell_state][1] = rows_table[row_index][cell_state][1] + 1
 
-        cols_table[col_index][cell_state] = is_EMPTY and {cols_table[col_index][EMPTY][1] + 1, cell_num} 
-                                        or cols_table[col_index][cell_state] + 1
+        cols_table[col_index][cell_state][1] = cols_table[col_index][cell_state][1] + 1
+
+        if is_EMPTY then
+            table.insert(rows_table[row_index][EMPTY][2], cell_num)
+            table.insert(cols_table[col_index][EMPTY][2], cell_num)
+        end
 
         if diagonal_indices then
             -- for loop used, since current cell may belong to multiple diagonals (e.g., center cell)
             for _, dia_index in ipairs(diagonal_indices) do 
-                dia_table[dia_index][cell_state] = is_EMPTY and {dia_table[dia_index][EMPTY][1] + 1, cell_num}
-                                                or dia_table[dia_index][cell_state] + 1
+                dia_table[dia_index][cell_state][1] = dia_table[dia_index][cell_state][1] + 1
+                if is_EMPTY then 
+                    table.insert(dia_table[dia_index][EMPTY][2], cell_num) 
+                end
             end
         end
 
         -- Check if the current cell is the last in a row/column/diagonal
         -- and evaluate the respective tables for potential winning or defending moves
         if col_index == 3 then -- last in a column = end of a row
-            if rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][curr] == 2 then
+            if rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][curr][1] == 2 then
                 -- return cell number of empty cell to win
-                return rows_table[row_index][EMPTY][2] 
+                return rows_table[row_index][EMPTY][2][1]
 
-            elseif rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][opp] == 2 then
+            elseif rows_table[row_index][EMPTY][1] == 1 and rows_table[row_index][opp][1] == 2 then
                  -- save cell number of empty cell to defend against opponent's two in a row
-                block_opp = rows_table[row_index][EMPTY][2] 
+                block_opp = rows_table[row_index][EMPTY][2][1]
             end
         end
 
         if row_index == 3 then -- last in a row = end of a column
-            if cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][curr] == 2 then
-                return cols_table[col_index][EMPTY][2] 
+            if cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][curr][1] == 2 then
+                return cols_table[col_index][EMPTY][2][1]
 
-            elseif cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][opp] == 2 then
-                block_opp = cols_table[col_index][EMPTY][2] 
+            elseif cols_table[col_index][EMPTY][1] == 1 and cols_table[col_index][opp][1] == 2 then
+                block_opp = cols_table[col_index][EMPTY][2][1]
             end
         end
 
         if row_index == 3 and diagonal_indices then -- last in a column and is on a diagonal = end of a diagonal
-            if dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][curr] == 2 then
-                return dia_table[diagonal_indices[1]][EMPTY][2] 
+            if dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][curr][1] == 2 then
+                return dia_table[diagonal_indices[1]][EMPTY][2][1]
 
-            elseif dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][opp] == 2 then
-                block_opp = dia_table[diagonal_indices[1]][EMPTY][2] 
+            elseif dia_table[diagonal_indices[1]][EMPTY][1] == 1 and dia_table[diagonal_indices[1]][opp][1] == 2 then
+                block_opp = dia_table[diagonal_indices[1]][EMPTY][2][1]
             end
         end
         
@@ -220,28 +231,7 @@ end
 
 -- [CHECK 2] - Otherwise, if there is a move that creates two lines of two in a row, play that move.
 function check_create_two_lines (game_board, curr_turn)    
-    local EMPTY, X, O = 0, "X", "O" -- constants representing cell states
-    local curr = curr_turn -- computer turn's cell state
-    local opp = curr_turn == X and O or X -- opponent's cell state
-    -- Tables to track the cell_states of each row/column/diagonal
-    -- Each entry has a count for EMPTY cells and EMPTY cell position, X cells, and O cells
-    local rows_table = {
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
-    }
-
-    local cols_table = {
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
-    }
-
-    local dia_table = {
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}, 
-        {[EMPTY]={0, {}}, [X]={0}, [O]={0}}
-    }
-
+    local EMPTY, X, O, curr, opp, rows_table, cols_table, dia_table = initalise_variables(curr_turn)
     -- Iterate over each cell in the game board
     for cell_num, cell in ipairs(game_board) do
         -- Convert cell index to zero-based index for modulo/floor calculations
@@ -304,13 +294,13 @@ end
 
 -- [CHECK 3] - Otherwise, if the centre is free, play there.
 local function check_centre(game_board) 
-    local EMPTY = 0
+    local EMPTY = initalise_variables()
     return game_board[5][7] == EMPTY and game_board[5][2]
 end
 
 -- [CHECK 4] - Otherwise, if your opponent has played in a corner, play the opposite corner.
 local function check_op_corner (game_board, curr_turn) 
-    local opp = curr_turn == X and O or X
+    local EMPTY, _, _, _, opp = initalise_variables(curr_turn)
     if game_board[1][7] == EMPTY and game_board[9][7] == opp then
         return game_board[1][2]
     elseif game_board[3][7] == EMPTY and game_board[7][7] == opp then
@@ -324,7 +314,7 @@ end
 
 -- [CHECK 5] - Otherwise, if there is a free corner, play there.
 local function check_free_corner (game_board) 
-    local EMPTY = 0
+    local EMPTY = initalise_variables()
     return (game_board[1][7] == EMPTY and game_board[1][2]) or 
            (game_board[3][7] == EMPTY and game_board[3][2]) or
            (game_board[7][7] == EMPTY and game_board[7][2]) or 
