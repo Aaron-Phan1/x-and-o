@@ -37,10 +37,13 @@ local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local game_state = "in_progress"
+
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
-local computer_fill = nil -- Fill function for computer based on difficulty
+
+-- Fill function for computer based on difficulty
+local computer_fill = nil 
 
 -- Show overlay to select difficulty
 local function select_difficulty(event)
@@ -108,15 +111,10 @@ end
 
 local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
 local function computer_fill_hard (event)
-    if taps < 9 then
-        -- Iterate through checks
-        for _, check_func in ipairs(hard_mode_logic.checks) do 
-            local check = check_func(hard_mode_logic, board, whichTurn)
-            if check then
-                play_move(check, "hard")
-                return
-            end
-        end
+    local hardModeInstance = hard_mode_logic:new(nil, board, whichTurn, taps)
+    local best_move = hardModeInstance:get_best_move()
+    if best_move then
+        play_move(best_move, 'hard')
     end
 end
 
