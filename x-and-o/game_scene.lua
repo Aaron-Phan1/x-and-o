@@ -40,8 +40,17 @@ local game_state = "in_progress"
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
+local computer_fill = nil
 
 -- used for board validation functions
+local function select_difficulty(event)
+    local options = {
+        effect = "fromLeft",
+        time = 500,
+        isModal = true
+    }
+    composer.showOverlay("select_difficulty_overlay", options)
+end
 
 -- Check for winner
 local function check_for_win (game_board, difficulty)
@@ -117,7 +126,7 @@ local function fill (event)
                 if event.y < board[t][4] and event.y > board[t][6] then
                     if board[t][7] == EMPTY then
                         play_move(t, "player")
-                        computer_fill_hard()
+                        computer_fill()
 
                             
 
@@ -133,6 +142,14 @@ end
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
 
+function scene:post_difficulty_selection(difficulty)
+    if difficulty == "hard" then
+        computer_fill = computer_fill_hard
+    elseif difficulty == "easy" then
+        computer_fill = computer_fill_easy
+    end
+    composer.hideOverlay( "slideLeft", 500 )
+end
 
 -- create()
 function scene:create( event )
@@ -172,6 +189,7 @@ function scene:show( event )
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
     Runtime:addEventListener("touch", fill)
+    timer.performWithDelay(100, select_difficulty)
     end
 end
  
