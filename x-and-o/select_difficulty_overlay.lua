@@ -1,7 +1,8 @@
 local composer = require( "composer" )
  
 local scene = composer.newScene()
- 
+
+local widget = require("widget")
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
@@ -9,16 +10,39 @@ local scene = composer.newScene()
  
 d = display
 w20 = d.contentWidth * .2
+w40 = d.contentWidth * .4
+w60 = d.contentWidth * .6
+w80 = d.contentWidth * .8
+
+h2_5 = d.contentHeight * .025
+h5 = d.contentHeight * .05
+h10 = d.contentHeight * .1
 h20 = d.contentHeight * .2 
 h30 = d.contentHeight * .3
-w40 = d.contentWidth * .4
 h40 = d.contentHeight * .4
-w60 = d.contentWidth * .6
+h50 = d.contentHeight * .5
 h60 = d.contentHeight * .6
-w80 = d.contentWidth * .8
+h70 = d.contentHeight * .7
 h80 = d.contentHeight * .8
- 
- 
+h90 = d.contentHeight * .9
+
+
+-- display object constants
+element_gap = h2_5
+buttonHeight = h10
+
+-- font constants
+local FONT = "Arial"
+local baseFontSize = 24
+local adjustedSize = baseFontSize * display.contentHeight / 480
+local selectedButton = nil
+
+-- Save the selected difficulty before hiding the overlay
+local function handle_button_event(event)
+    selectedButton = event.target.difficulty
+    composer.hideOverlay("slideLeft", 500)
+end
+
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
@@ -28,12 +52,59 @@ function scene:create( event )
  
     local sceneGroup = self.view
     -- Code here runs when the scene is first created but has not yet appeared on screen
-    local selection_window = d.newRect(d.contentWidth/2, d.contentHeight/2, w80, h60)
+
+    -- Create a window for the difficulty selection
+    local selection_window = d.newRect(d.contentWidth/2, d.contentHeight/2, w80, h40)
     selection_window:setFillColor(0.6, 0.4, 0.2)
     selection_window.strokeWidth = 4
+    
+    -- Create text for selecting difficulty
+    local selection_text = d.newText("Select Difficulty", d.contentWidth/2, h30 + h5, FONT, adjustedSize)
+  
+    -- Create buttons for selecting difficulty
+    local easyButton = widget.newButton(
+        {
+            label = "Easy",
+            onRelease = handle_button_event,
+            -- Properties for a rounded rectangle button
+            shape = "roundedRect",
+            width = w60,
+            height = h10,
+            x = display.contentCenterX,
+            y = selection_text.y + buttonHeight + element_gap,
+            cornerRadius = 2,
+            fillColor = { default={0,1,0,1}, over={0.5,1,0.5,1} },
+            strokeColor = { default={0,0.5,0,1}, over={0.3,0.8,0.3,1} },
+            strokeWidth = 4
+        }
+    )
+    easyButton.difficulty = "easy" -- Add a custom property to the button object
+
+    local hardButton = widget.newButton(
+        {
+            label = "Hard",
+            onRelease = handle_button_event,
+            -- Properties for a rounded rectangle button
+            labelColor = { default={0,0,0}, over={0,0,0} },
+            shape = "roundedRect",
+            width = w60,
+            height = h10,
+            x = display.contentCenterX,
+            y = easyButton.y + buttonHeight + element_gap,
+            cornerRadius = 2,
+            fillColor = { default={1,0,0,1}, over={1,0.5,0.5,1} },
+            strokeColor = { default={0.5,0,0,1}, over={0.8,0.3,0.3,1} },
+            strokeWidth = 4
+        }
+    )
+    hardButton.difficulty = "hard"
+
+    -- Add the display objects to the scene group
     sceneGroup:insert(selection_window)
-    local selection_text = d.newText("Select Difficulty", d.contentWidth/2, h30, native.systemFont, 24)
     sceneGroup:insert(selection_text)
+    sceneGroup:insert(easyButton)
+    sceneGroup:insert(hardButton)  
+
 end
  
  
@@ -55,16 +126,20 @@ end
  
 -- hide()
 function scene:hide( event )
- 
     local sceneGroup = self.view
     local phase = event.phase
- 
+
+    -- Get the parent scene
+    local parent = event.parent
+
     if ( phase == "will" ) then
         -- Code here runs when the scene is on screen (but is about to go off screen)
- 
+
+        -- Pass the selected difficulty back to the parent scene
+        parent:post_difficulty_selection(selectedButton)
     elseif ( phase == "did" ) then
         -- Code here runs immediately after the scene goes entirely off screen
- 
+        
     end
 end
  
@@ -86,5 +161,5 @@ scene:addEventListener( "show", scene )
 scene:addEventListener( "hide", scene )
 scene:addEventListener( "destroy", scene )
 -- -----------------------------------------------------------------------------------
- 
+
 return scene

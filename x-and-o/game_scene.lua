@@ -34,15 +34,15 @@ board ={
 
 -- GAME CONSTANTS
 local taps = 0 -- track moves done
-local EMPTY, X, O = 0, "X", "O"
+local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local game_state = "in_progress"
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
-local computer_fill = nil
+local computer_fill = nil -- Fill function for computer based on difficulty
 
--- used for board validation functions
+-- Show overlay to select difficulty
 local function select_difficulty(event)
     local options = {
         effect = "fromLeft",
@@ -52,8 +52,10 @@ local function select_difficulty(event)
     composer.showOverlay("select_difficulty_overlay", options)
 end
 
--- Check for winner
+-- Game Logic
+---- Check for winner
 local function check_for_win (game_board, difficulty)
+    -- Check for horizontal, vertical, and diagonal wins
     win = nil
     if (game_board[1][7] == whichTurn and game_board[2][7] == whichTurn and game_board[3][7] == whichTurn) or
        (game_board[4][7] == whichTurn and game_board[5][7] == whichTurn and game_board[6][7] == whichTurn) or
@@ -65,6 +67,7 @@ local function check_for_win (game_board, difficulty)
        (game_board[3][7] == whichTurn and game_board[5][7] == whichTurn and game_board[7][7] == whichTurn) then
         win = true
     end
+    
     if win == true then
         if difficulty == "player" then
             print("You Win")
@@ -76,31 +79,40 @@ local function check_for_win (game_board, difficulty)
     end
 end
 
--- Play a move
+---- Play a move
 local function play_move (cell_num, difficulty)
     local sceneGroup = scene.view
-    if game_state == "in_progress" then
-        local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
-                    or difficulty == "player" and "PLAYER"
-        board[cell_num][7] = whichTurn -- O
-        board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
-        sceneGroup:insert(board[cell_num][8])
-        print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
-        check_for_win(board, difficulty)
-        whichTurn = whichTurn == X and O or X
-        taps = taps + 1
-    end
+
+    local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
+                or difficulty == "player" and "PLAYER"
+
+    -- Set cell state to X or O
+    board[cell_num][7] = whichTurn 
+
+    -- Draw X or O in cell
+    board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
+
+    -- Add text to scene group
+    sceneGroup:insert(board[cell_num][8])
+
+    print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
+    check_for_win(board, difficulty)
+
+    -- Switch turns and increment tap counter
+    whichTurn = whichTurn == X and O or X
+    taps = taps + 1
 end
--- COMPUTER TURN (HARD) 
+-- Computer fill functions
+---- COMPUTER TURN (HARD) 
 
 
-local hard_mode_logic = require("hard_mode_logic")
+local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
 local function computer_fill_hard (event)
     if taps < 9 then
-        for _, check_func in ipairs(hard_mode_logic.checks) do
+        -- Iterate through checks
+        for _, check_func in ipairs(hard_mode_logic.checks) do 
             local check = check_func(hard_mode_logic, board, whichTurn)
-            print(_, check, whichTurn)
-            if check then 
+            if check then
                 play_move(check, "hard")
                 return
             end
@@ -108,20 +120,19 @@ local function computer_fill_hard (event)
     end
 end
 
--- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
+---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local function computer_fill_easy ()
     if taps < 9 then
         local t = random_cell()
         play_move(t, 'easy')
     end
 end
-
-
+-- -----------------------------------------------------------------------------------
 
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local function fill (event)
-    if event.phase == "began" then
-        for t = 1, 9 do
+    if event.phase == "began" and game_state == "in_progress" then
+        for t = 1, 9 do -- Check which tile was touched
             if event.x > board[t][3] and event.x < board [t][5] then
                 if event.y < board[t][4] and event.y > board[t][6] then
                     if board[t][7] == EMPTY then
@@ -147,8 +158,7 @@ function scene:post_difficulty_selection(difficulty)
         computer_fill = computer_fill_hard
     elseif difficulty == "easy" then
         computer_fill = computer_fill_easy
-    end
-    composer.hideOverlay( "slideLeft", 500 )
+    end 
 end
 
 -- create()
@@ -158,19 +168,20 @@ function scene:create( event )
     ----DRAW LINES FOR BOARD
     local lline = d.newLine(w40, h20, w40, h80)
     lline.strokeWidth = 5
-    sceneGroup:insert(lline)
 
     local rline = d.newLine(w60, h20, w60, h80)
     rline.strokeWidth = 5
-    sceneGroup:insert(rline)
 
     local bline = d.newLine(w20, h40, w80, h40)
     bline.strokeWidth = 5
-    sceneGroup:insert(bline)
     local tline = d.newLine(w20, h60, w80, h60)
     tline.strokeWidth = 5
-    sceneGroup:insert(tline)
 
+    -- Add board lines to scene group
+    sceneGroup:insert(lline)
+    sceneGroup:insert(rline)
+    sceneGroup:insert(bline)
+    sceneGroup:insert(tline)
 
     -- Code here runs when the scene is first created but has not yet appeared on screen
  
@@ -188,8 +199,11 @@ function scene:show( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
-    Runtime:addEventListener("touch", fill)
-    timer.performWithDelay(100, select_difficulty)
+
+        Runtime:addEventListener("touch", fill)
+
+        -- Show difficulty selection overlay when scene is initially shown 
+        timer.performWithDelay(100, select_difficulty) 
     end
 end
  
