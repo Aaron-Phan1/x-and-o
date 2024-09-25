@@ -125,20 +125,24 @@ end
 
 local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
 local function computer_fill_hard (event)
-    local hardModeInstance = hard_mode_logic:new(nil, board, whichTurn, taps)
-    local best_move = hardModeInstance:get_best_move()
-    if best_move then
-        play_move(best_move, 'hard')
+    if game_state == "in_progress" then
+        local hardModeInstance = hard_mode_logic:new(nil, board, whichTurn, taps)
+        local best_move = hardModeInstance:get_best_move()
+        if best_move then
+            play_move(best_move, 'hard')
+        end
     end
 end
 
 ---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
 local function computer_fill_easy ()
-    local easyModeInstance = easy_mode_logic:new(nil, board, taps)
-    local best_move = easyModeInstance:get_best_move()
-    if best_move then
-        play_move(best_move, 'easy')
+    if game_state == "in_progress" then
+        local easyModeInstance = easy_mode_logic:new(nil, board, taps)
+        local best_move = easyModeInstance:get_best_move()
+        if best_move then
+            play_move(best_move, 'easy')
+        end
     end
 end
 -- -----------------------------------------------------------------------------------
