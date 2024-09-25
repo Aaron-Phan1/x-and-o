@@ -71,20 +71,20 @@ end
 
 -- Game Logic
 ---- Check for winner
-local function check_for_win (game_board, difficulty)
+local function check_game_state (game_board, difficulty, curr_turn, taps)
     -- Check for horizontal, vertical, and diagonal wins
     win = nil
-    if (game_board[1][7] == whichTurn and game_board[2][7] == whichTurn and game_board[3][7] == whichTurn) or
-       (game_board[4][7] == whichTurn and game_board[5][7] == whichTurn and game_board[6][7] == whichTurn) or
-       (game_board[7][7] == whichTurn and game_board[8][7] == whichTurn and game_board[9][7] == whichTurn) or
-       (game_board[1][7] == whichTurn and game_board[4][7] == whichTurn and game_board[7][7] == whichTurn) or
-       (game_board[2][7] == whichTurn and game_board[5][7] == whichTurn and game_board[8][7] == whichTurn) or
-       (game_board[3][7] == whichTurn and game_board[6][7] == whichTurn and game_board[9][7] == whichTurn) or
-       (game_board[1][7] == whichTurn and game_board[5][7] == whichTurn and game_board[9][7] == whichTurn) or
-       (game_board[3][7] == whichTurn and game_board[5][7] == whichTurn and game_board[7][7] == whichTurn) then
+    if (game_board[1][7] == curr_turn and game_board[2][7] == curr_turn and game_board[3][7] == curr_turn) or
+       (game_board[4][7] == curr_turn and game_board[5][7] == curr_turn and game_board[6][7] == curr_turn) or
+       (game_board[7][7] == curr_turn and game_board[8][7] == curr_turn and game_board[9][7] == curr_turn) or
+       (game_board[1][7] == curr_turn and game_board[4][7] == curr_turn and game_board[7][7] == curr_turn) or
+       (game_board[2][7] == curr_turn and game_board[5][7] == curr_turn and game_board[8][7] == curr_turn) or
+       (game_board[3][7] == curr_turn and game_board[6][7] == curr_turn and game_board[9][7] == curr_turn) or
+       (game_board[1][7] == curr_turn and game_board[5][7] == curr_turn and game_board[9][7] == curr_turn) or
+       (game_board[3][7] == curr_turn and game_board[5][7] == curr_turn and game_board[7][7] == curr_turn) then
         win = true
     end
-    
+    print(difficulty)
     if win == true then
         if difficulty == "player" then
             print("You Win")
@@ -93,6 +93,11 @@ local function check_for_win (game_board, difficulty)
             print("You Lose")
             game_state = "ai_won"
         end
+    end
+
+    if taps == 9 and win == nil then
+        print("It's a draw")
+        game_state = "draw"
     end
 end
 
@@ -113,12 +118,12 @@ local function play_move (cell_num, difficulty)
     sceneGroup:insert(board[cell_num][8])
 
     print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
-    check_for_win(board, difficulty)
-
-    -- Switch turns and increment tap counter
+    taps = taps + 1 -- Increment tap counter to account for current move before checking game state 
+    check_game_state(board, difficulty, whichTurn, taps)
+    -- Switch turns after checking game state so that the winner is displayed correctly
     whichTurn = whichTurn == X and O or X
-    taps = taps + 1
 end
+
 -- Computer fill functions
 ---- COMPUTER TURN (HARD) 
 
