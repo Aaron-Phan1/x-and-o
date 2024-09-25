@@ -119,10 +119,12 @@ local function computer_fill_hard (event)
 end
 
 ---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
+local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
 local function computer_fill_easy ()
-    if taps < 9 then
-        local t = random_cell()
-        play_move(t, 'easy')
+    local easyModeInstance = easy_mode_logic:new(nil, board, taps)
+    local best_move = easyModeInstance:get_best_move()
+    if best_move then
+        play_move(best_move, 'easy')
     end
 end
 -- -----------------------------------------------------------------------------------
