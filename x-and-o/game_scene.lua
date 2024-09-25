@@ -61,6 +61,10 @@ local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local game_state = "in_progress"
 
+-- forward declaration so that the function can be called before it is defined
+local computer_fill_hard
+local computer_fill_easy
+
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
@@ -111,7 +115,34 @@ local function change_difficulty(event)
     computer_fill = computer_fill == computer_fill_hard and computer_fill_easy or computer_fill_hard
     display_difficulty()
 end
+local buttonObjects = {}
 -- Game Over function
+local function play_again()
+    local sceneGroup = scene.view
+
+    -- Reset board state
+    for i = 1, 9 do
+        display.remove(board[i][8])
+        board[i][8] = nil
+        board[i][7] = EMPTY
+    end
+
+    -- Reset game states
+    taps = 0
+    whichTurn = X
+    game_state = "in_progress"
+
+    -- Remove game over text and buttons
+    for _, button in ipairs(buttonObjects) do
+        display.remove(button)
+        button = nil
+    end
+
+    display.remove(gameOverText)
+    gameOverText = nil
+
+end
+
 local function game_over(game_state)
     local sceneGroup = scene.view
     if game_state == "player_won" then
@@ -125,9 +156,10 @@ local function game_over(game_state)
         gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
     end
     sceneGroup:insert(gameOverText)
+    
     local buttons = {
         {label = "Change\nDifficulty", onRelease = change_difficulty},
-        {label = "Play\nAgain"},
+        {label = "Play\nAgain", onRelease = play_again},
         {label = "Watch\nReplay"}
     }
 
@@ -147,6 +179,7 @@ local function game_over(game_state)
             }
         )
         sceneGroup:insert(button)
+        table.insert(buttonObjects, button)
         buttonX = buttonX + buttonWidth + buttonGap
     end
 end
@@ -215,7 +248,7 @@ end
 
 
 local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
-local function computer_fill_hard (event)
+function computer_fill_hard (event)
     if game_state == "in_progress" then
         local hardModeInstance = hard_mode_logic:new(nil, board, whichTurn, taps)
         local best_move = hardModeInstance:get_best_move()
@@ -227,7 +260,7 @@ end
 
 ---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
-local function computer_fill_easy ()
+function computer_fill_easy ()
     if game_state == "in_progress" then
         local easyModeInstance = easy_mode_logic:new(nil, board, taps)
         local best_move = easyModeInstance:get_best_move()
@@ -273,7 +306,6 @@ function scene:post_difficulty_selection(difficulty)
         startup = false
     end
     current_difficulty = difficulty
-    print(current_difficulty)
     display_difficulty()
 end
 
