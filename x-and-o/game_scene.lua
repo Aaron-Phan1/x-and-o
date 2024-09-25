@@ -55,6 +55,20 @@ local function select_difficulty(event)
     composer.showOverlay("select_difficulty_overlay", options)
 end
 
+-- Show overlay to choose whether to go first or second
+
+local function select_order(event)
+    local options = {
+        effect = "fromLeft",
+        time = 200,
+        isModal = true
+    }
+    composer.showOverlay("select_order_overlay", options)
+end
+
+
+-- Game State functions
+
 -- Game Logic
 ---- Check for winner
 local function check_for_win (game_board, difficulty)
@@ -159,8 +173,15 @@ function scene:post_difficulty_selection(difficulty)
     elseif difficulty == "easy" then
         computer_fill = computer_fill_easy
     end 
+    select_order()
 end
 
+function scene:post_order_selection(order)
+    if order == "first" then
+    elseif order == "second" then
+        computer_fill()
+    end 
+end
 -- create()
 function scene:create( event )
  
