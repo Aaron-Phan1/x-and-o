@@ -2,19 +2,42 @@ local composer = require( "composer" )
  
 local scene = composer.newScene()
  
+local widget = require("widget")
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 d = display
+w2_5 = d.contentWidth * .025
+w5 = d.contentWidth * .05
+w10 = d.contentWidth * .1
 w20 = d.contentWidth * .2
-h20 = d.contentHeight * .2 
+w30 = d.contentWidth * .3
 w40 = d.contentWidth * .4
-h40 = d.contentHeight * .4
+w50 = d.contentWidth * .5
 w60 = d.contentWidth * .6
-h60 = d.contentHeight * .6
+w70 = d.contentWidth * .7
 w80 = d.contentWidth * .8
+w90 = d.contentWidth * .9
+
+h2_5 = d.contentHeight * .025
+h5 = d.contentHeight * .05
+h10 = d.contentHeight * .1
+h20 = d.contentHeight * .2 
+h30 = d.contentHeight * .3
+h40 = d.contentHeight * .4
+h50 = d.contentHeight * .5
+h60 = d.contentHeight * .6
+h70 = d.contentHeight * .7
 h80 = d.contentHeight * .8
+h90 = d.contentHeight * .9
+
+-- display object constants
+local game_over_y = h10 + h2_5
+local buttonWidth = w20 + w2_5
+local buttonHeight = h10
+local buttonGap = w5 + w2_5
+local buttonY = h90
 --PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
 
 board ={
@@ -43,8 +66,10 @@ local FONT = "Arial"
 local TEXT_SIZE = 20
 
 -- Fill function for computer based on difficulty
+local current_difficulty = nil
 local computer_fill = nil 
-
+-- OVERLAY FUNCTIONS
+startup = true
 -- Show overlay to select difficulty
 local function select_difficulty(event)
     local options = {
@@ -56,7 +81,7 @@ local function select_difficulty(event)
 end
 
 -- Show overlay to choose whether to go first or second
-
+local difficultyText = nil
 local function select_order(event)
     local options = {
         effect = "fromLeft",
@@ -66,6 +91,65 @@ local function select_order(event)
     composer.showOverlay("select_order_overlay", options)
 end
 
+local function display_difficulty()
+
+    display.remove(difficultyText)
+    difficultyText = nil
+
+    local sceneGroup = scene.view
+    difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    if current_difficulty == "easy" then
+        difficultyText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif current_difficulty == "hard" then
+        difficultyText:setFillColor(1, 0, 0) -- Set text color to red
+    end
+    sceneGroup:insert(difficultyText)
+end
+
+local function change_difficulty(event)
+    current_difficulty = current_difficulty == "hard" and "easy" or "hard"
+    computer_fill = computer_fill == computer_fill_hard and computer_fill_easy or computer_fill_hard
+    display_difficulty()
+end
+-- Game Over function
+local function game_over(game_state)
+    local sceneGroup = scene.view
+    if game_state == "player_won" then
+        gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif game_state == "ai_won" then
+        gameOverText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText:setFillColor(1, 0, 0) -- Set text color to red
+    elseif game_state == "draw" then
+        gameOverText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
+    end
+    sceneGroup:insert(gameOverText)
+    local buttons = {
+        {label = "Change\nDifficulty", onRelease = change_difficulty},
+        {label = "Play\nAgain"},
+        {label = "Watch\nReplay"}
+    }
+
+    local buttonX = w20
+    for i, buttonConfig in ipairs(buttons) do
+        local button = widget.newButton(
+            {
+                label = buttonConfig.label,
+                labelColor = { default={0,0,0}, over={0,0,0} },
+                shape = "roundedRect",
+                width = buttonWidth,
+                height = buttonHeight,
+                onRelease = buttonConfig.onRelease,
+                x = buttonX,
+                y = buttonY,
+                fontSize = 16
+            }
+        )
+        sceneGroup:insert(button)
+        buttonX = buttonX + buttonWidth + buttonGap
+    end
+end
 
 -- Game State functions
 
@@ -84,7 +168,7 @@ local function check_game_state (game_board, difficulty, curr_turn, taps)
        (game_board[3][7] == curr_turn and game_board[5][7] == curr_turn and game_board[7][7] == curr_turn) then
         win = true
     end
-    print(difficulty)
+
     if win == true then
         if difficulty == "player" then
             print("You Win")
@@ -93,11 +177,13 @@ local function check_game_state (game_board, difficulty, curr_turn, taps)
             print("You Lose")
             game_state = "ai_won"
         end
+        game_over(game_state)
     end
 
     if taps == 9 and win == nil then
         print("It's a draw")
         game_state = "draw"
+        game_over(game_state)
     end
 end
 
@@ -181,8 +267,14 @@ function scene:post_difficulty_selection(difficulty)
         computer_fill = computer_fill_hard
     elseif difficulty == "easy" then
         computer_fill = computer_fill_easy
-    end 
-    select_order()
+    end
+    if startup then
+        select_order()
+        startup = false
+    end
+    current_difficulty = difficulty
+    print(current_difficulty)
+    display_difficulty()
 end
 
 function scene:post_order_selection(order)
@@ -233,7 +325,7 @@ function scene:show( event )
         Runtime:addEventListener("touch", fill)
 
         -- Show difficulty selection overlay when scene is initially shown 
-        timer.performWithDelay(100, select_difficulty) 
+        select_difficulty()
     end
 end
  
