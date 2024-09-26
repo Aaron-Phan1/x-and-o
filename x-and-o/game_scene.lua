@@ -40,12 +40,13 @@ h90 = d.contentHeight * .9
 local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
-local game_state = nil
+local gameState = nil
+local winningCells = nil
 
 
 -- FONT CONSTANTS
 local FONT = "Arial"
-local TEXT_SIZE = 20
+local TEXT_SIZE = 40
 
 -- display object constants
 local game_over_y = h10 + h2_5
@@ -66,6 +67,7 @@ local difficultyText = nil
 local buttonObjects = {}
 local undoButton = nil
 local gameOverText = nil
+local winStrikethrough = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -194,7 +196,7 @@ end
 local function initialise_game ()
     taps = 0
     whichTurn = X
-    game_state = "in_progress"
+    gameState = "in_progress"
     
     if current_difficulty == "hard" then
         computer_fill = computer_fill_hard
@@ -212,21 +214,45 @@ local function initialise_game ()
 
 end
 
-local function game_over(game_state)
-    gameInstance.result = game_state
+local function game_over(gameState)
+    gameInstance.result = gameState
     local sceneGroup = scene.view
-    if game_state == "player_won" then
+    if gameState == "player_won" then
         gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
         gameOverText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif game_state == "ai_won" then
+    elseif gameState == "ai_won" then
         gameOverText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
         gameOverText:setFillColor(1, 0, 0) -- Set text color to red
-    elseif game_state == "draw" then
+    elseif gameState == "draw" then
         gameOverText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
         gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
     end
     sceneGroup:insert(gameOverText)
     
+    -- Draw line through winning cells
+    if winningCells then
+        if winDirection == "diagonal" then
+            if winningCells[1] == 1 then
+                winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][3], gameInstance.board[winningCells[1]][6], gameInstance.board[winningCells[3]][5], gameInstance.board[winningCells[3]][4])
+            elseif winningCells[1] == 3 then
+                winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][5], gameInstance.board[winningCells[1]][6], gameInstance.board[winningCells[3]][3], gameInstance.board[winningCells[3]][4])
+            end
+        elseif winDirection == "horizontal" then
+            local halfwayY = (gameInstance.board[winningCells[1]][4] + gameInstance.board[winningCells[1]][6]) / 2
+            winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][3], halfwayY, gameInstance.board[winningCells[3]][5], halfwayY)
+        elseif winDirection == "vertical" then
+            local halfwayX = (gameInstance.board[winningCells[1]][3] + gameInstance.board[winningCells[1]][5]) / 2
+            winStrikethrough = d.newLine(halfwayX, gameInstance.board[winningCells[1]][6], halfwayX, gameInstance.board[winningCells[3]][4])
+        end
+        winStrikethrough.strokeWidth = 5
+        winStrikethrough.alpha = 0.8
+        local winningCellsType = gameInstance.board[winningCells[1]][7]
+        winStrikethrough:setStrokeColor(winningCellsType == X and 0 or 1, 0, winningCellsType == X and 1 or 0)
+        sceneGroup:insert(winStrikethrough)
+    end
+
+    sceneGroup:insert(winStrikethrough)
+
     local buttons = {
         {label = "Change\nDifficulty", onRelease = change_difficulty},
         {label = "Play\nAgain", onRelease = play_again},
@@ -261,32 +287,46 @@ end
 local function check_game_state (game_board, difficulty, curr_turn, taps)
     -- Check for horizontal, vertical, and diagonal wins
     win = nil
-    if (game_board[1][7] == curr_turn and game_board[2][7] == curr_turn and game_board[3][7] == curr_turn) or
-       (game_board[4][7] == curr_turn and game_board[5][7] == curr_turn and game_board[6][7] == curr_turn) or
-       (game_board[7][7] == curr_turn and game_board[8][7] == curr_turn and game_board[9][7] == curr_turn) or
-       (game_board[1][7] == curr_turn and game_board[4][7] == curr_turn and game_board[7][7] == curr_turn) or
-       (game_board[2][7] == curr_turn and game_board[5][7] == curr_turn and game_board[8][7] == curr_turn) or
-       (game_board[3][7] == curr_turn and game_board[6][7] == curr_turn and game_board[9][7] == curr_turn) or
-       (game_board[1][7] == curr_turn and game_board[5][7] == curr_turn and game_board[9][7] == curr_turn) or
-       (game_board[3][7] == curr_turn and game_board[5][7] == curr_turn and game_board[7][7] == curr_turn) then
-        win = true
+    local winning_combinations = {
+        -- Horizontal wins
+        {1, 2, 3, direction = "horizontal"}, 
+        {4, 5, 6, direction = "horizontal"}, 
+        {7, 8, 9, direction = "horizontal"}, 
+        -- Vertical wins
+        {1, 4, 7, direction = "vertical"}, 
+        {2, 5, 8, direction = "vertical"}, 
+        {3, 6, 9, direction = "vertical"},
+        -- Diagonal wins
+        {1, 5, 9, direction = "diagonal"}, 
+        {3, 5, 7, direction = "diagonal"} 
+    }
+
+    for _, combination in ipairs(winning_combinations) do
+        if game_board[combination[1]][7] == curr_turn and
+           game_board[combination[2]][7] == curr_turn and
+           game_board[combination[3]][7] == curr_turn then
+            win = true
+            winningCells = combination
+            winDirection = combination.direction
+            break
+        end
     end
 
     if win == true then
         if difficulty == "player" then
             print("You Win")
-            game_state = "player_won"
+            gameState = "player_won"
         else 
             print("You Lose")
-            game_state = "ai_won"
+            gameState = "ai_won"
         end
-        game_over(game_state)
+        game_over(gameState)
     end
 
     if taps == 9 and win == nil then
         print("It's a draw")
-        game_state = "draw"
-        game_over(game_state)
+        gameState = "draw"
+        game_over(gameState)
     end
 end
 
@@ -319,7 +359,7 @@ end
 
 local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
 function computer_fill_hard (event)
-    if game_state == "in_progress" then
+    if gameState == "in_progress" then
         local hardModeInstance = hard_mode_logic:new(nil, gameInstance:get_board(), whichTurn, taps)
         local best_move = hardModeInstance:get_best_move()
         if best_move then
@@ -331,7 +371,7 @@ end
 ---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
 local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
 function computer_fill_easy ()
-    if game_state == "in_progress" then
+    if gameState == "in_progress" then
         local easyModeInstance = easy_mode_logic:new(nil, gameInstance:get_board(), taps)
         local best_move = easyModeInstance:get_best_move()
         if best_move then
@@ -343,7 +383,7 @@ end
 
 -- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
 local function fill (event)
-    if event.phase == "began" and game_state == "in_progress" then
+    if event.phase == "began" and gameState == "in_progress" then
         for t = 1, 9 do -- Check which tile was touched
             if event.x > gameInstance:get_board()[t][3] and event.x < gameInstance:get_board() [t][5] then
                 if event.y < gameInstance:get_board()[t][4] and event.y > gameInstance:get_board()[t][6] then
