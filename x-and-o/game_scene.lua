@@ -41,8 +41,6 @@ local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local game_state = nil
-local initial_load = true
-
 
 
 -- FONT CONSTANTS
@@ -59,11 +57,14 @@ local buttonY = h90
 -- Fill function for computer based on difficulty
 local current_difficulty = nil
 local player_order = nil
+local playerTurn = nil
+local computerTurn = nil
 local computer_fill = nil 
 
 -- Display objects
 local difficultyText = nil
 local buttonObjects = {}
+local undoButton = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -77,7 +78,7 @@ local game = {
     O = "O",
 }
 
-function game:new(o, difficulty, play_order, history)
+function game:new(o, difficulty, player_order, moveHistory)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
@@ -98,17 +99,17 @@ function game:new(o, difficulty, play_order, history)
     self.difficulty = difficulty
     self.playerTurn = playerTurn
     self.computerTurn = computerTurn
-    self.history = history or {}
+    self.moveHistory = moveHistory or {}
     return o
 end
 
 function game:execute_command(command)
     self.board = command:execute(self.board)
-    table.insert(self.history, command)
+    table.insert(self.moveHistory, command)
 end
 
 function game:undo()
-    local command = table.remove(self.history)
+    local command = table.remove(self.moveHistory)
     self.board = command:undo(self.board)
 end
 
@@ -117,15 +118,17 @@ function game:get_board()
 end
 
 local play_move_command = {
-    board = nil
+    EMPTY = 0,
+    X = "X",
+    O = "O",
+    cell_num = nil,
+    curr_turn = nil
 }
 
-function play_move_command:new(o, cell_num, curr_turn)
+function play_move_command:new(o)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
-    self.cell_num = cell_num
-    self.curr_turn = curr_turn
     return o
 end
 
@@ -142,13 +145,20 @@ function play_move_command:execute(game_board)
     return board
 end
 
-function play_move_command:undo()
+function play_move_command:undo(game_board)
     -- Set cell state to EMPTY
-    self.board[self.cell_num][7] = EMPTY
+    local board = game_board
+    board[self.cell_num][7] = self.EMPTY
 
-    -- Remove X or O from cell
-    display.remove(self.board[self.cell_num][8])
-    self.board[self.cell_num][8] = nil
+    -- Remove X or O display object from cell
+    display.remove(board[self.cell_num][8])
+    board[self.cell_num][8] = nil
+    return board
+
+end
+
+function play_move_command:get_curr_turn()
+    return self.curr_turn
 end
 
 -- Show overlay to select difficulty
@@ -171,23 +181,6 @@ local function select_order(event)
     composer.showOverlay("select_order_overlay", options)
 end
 
-local function create_undo_button()
-    local sceneGroup = scene.view
-    local undoButton = widget.newButton(
-        {
-            label = "Undo",
-            onRelease = nil,
-            shape = "roundedRect",
-            width = buttonWidth,
-            height = buttonHeight,
-            x = w80,
-            y = buttonY,
-            fontSize = 16
-        }
-    )
-    sceneGroup:insert(undoButton)
-end
-
 local function display_difficulty()
 
     display.remove(difficultyText)
@@ -208,6 +201,50 @@ local function change_difficulty(event)
     difficultyText.text = "Difficulty: "..current_difficulty:upper()
     difficultyText:setFillColor(current_difficulty == "easy" and 0 or 1, current_difficulty == "hard" and 0 or 1, 0)
 end
+
+local function create_undo_button()
+    local sceneGroup = scene.view
+    undoButton = widget.newButton(
+        {
+            label = "Undo",
+            onRelease = undo_last_player_move,
+            shape = "roundedRect",
+            width = buttonWidth,
+            height = buttonHeight,
+            x = w80,
+            y = buttonY,
+            fontSize = 16
+        }
+    )
+    undoButton:setEnabled(false)
+    sceneGroup:insert(undoButton)
+end
+
+local function enable_undo ()
+    undoButton:setEnabled(true)
+
+
+    undoButton:setFillColor(0, 1, 0)
+end
+
+local function disable_undo ()
+    undoButton:setEnabled(false)
+
+    undoButton:setFillColor(0.5, 0.5, 0.5)
+end
+
+function undo_last_player_move ()
+    -- Undo moves until the last player move
+    while gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn do
+        gameInstance:undo()
+        taps = taps - 1
+    end
+    -- Undo the player's last move
+    gameInstance:undo()
+    taps = taps - 1
+    disable_undo()
+end
+
 
 -- Game Over function
 local function play_again ()
@@ -251,7 +288,7 @@ local function initialise_game ()
     end 
 
     create_undo_button()
-    display_difficulty()
+
 end
 
 local function game_over(game_state)
@@ -332,17 +369,25 @@ local function check_game_state (game_board, difficulty, curr_turn, taps)
 end
 
 ---- Play a move
-local function play_move (cell_num, difficulty)
-    local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
-                or difficulty == "player" and "PLAYER"
-    gameInstance:execute_command(play_move_command:new(nil, cell_num, whichTurn))
-    -- Add text to scene group
+local function play_move (cell_num, player_type)
 
-    print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
+    gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
+    local player_lookup = {
+        hard = "HARD COMPUTER",
+        easy = "EASY COMPUTER",
+        player = "PLAYER"
+    }
+
+    print(string.format("%s (%s) Cell Number: %d", player_lookup[player_type], whichTurn, cell_num))
     taps = taps + 1 -- Increment tap counter to account for current move before checking game state 
-    check_game_state(gameInstance:get_board(), difficulty, whichTurn, taps)
-    -- Switch turns after checking game state so that the winner is displayed correctly
+    check_game_state(gameInstance:get_board(), player_type, whichTurn, taps)
+
+    -- Switch turns after checking game state so that the winner is called correctly in check_game_state
     whichTurn = whichTurn == X and O or X
+
+    if player_type == "player" then
+        enable_undo()
+    end
 end
 
 -- Computer fill functions
@@ -398,12 +443,16 @@ end
 -- -----------------------------------------------------------------------------------
 
 function scene:post_difficulty_selection(difficulty)
+    -- initial difficulty selection when scene shows
     current_difficulty = difficulty
+    display_difficulty()
     select_order()
 end
 
 function scene:post_order_selection(order)
     player_order = order
+    playerTurn = player_order == "first" and X or O 
+    computerTurn = player_order == "first" and O or X
     initialise_game()
 end
 -- create()
@@ -487,15 +536,3 @@ scene:addEventListener( "destroy", scene )
 -- -----------------------------------------------------------------------------------
 
 return scene
-
-
-
-
-
-
-
-
-
-
-
-
