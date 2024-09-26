@@ -32,12 +32,6 @@ h70 = d.contentHeight * .7
 h80 = d.contentHeight * .8
 h90 = d.contentHeight * .9
 
--- display object constants
-local game_over_y = h10 + h2_5
-local buttonWidth = w20 + w2_5
-local buttonHeight = h10
-local buttonGap = w5 + w2_5
-local buttonY = h90
 --PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
 
 
@@ -46,22 +40,35 @@ local buttonY = h90
 local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
-local game_state = "in_progress"
+local game_state = nil
+local initial_load = true
 
--- forward declaration so that the function can be called before it is defined
-local computer_fill_hard
-local computer_fill_easy
+
 
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
 
+-- display object constants
+local game_over_y = h10 + h2_5
+local buttonWidth = w20 + w2_5
+local buttonHeight = h10
+local buttonGap = w5 + w2_5
+local buttonY = h90
+
 -- Fill function for computer based on difficulty
 local current_difficulty = nil
 local player_order = nil
 local computer_fill = nil 
+
+-- Display objects
+local difficultyText = nil
+local buttonObjects = {}
 -- OVERLAY FUNCTIONS
-startup = true
+
+-- forward declaration so that the function can be called before it is defined
+local computer_fill_hard
+local computer_fill_easy
 
 
 local game = {
@@ -180,13 +187,11 @@ local function create_undo_button()
     )
     sceneGroup:insert(undoButton)
 end
+
 local function display_difficulty()
 
-    if difficultyText then
-        display.remove(difficultyText)
-    end
-
-    local difficultyText = nil
+    display.remove(difficultyText)
+    difficultyText = nil
 
     local sceneGroup = scene.view
     difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
@@ -200,14 +205,15 @@ end
 
 local function change_difficulty(event)
     current_difficulty = current_difficulty == "hard" and "easy" or "hard"
-    computer_fill = computer_fill == computer_fill_hard and computer_fill_easy or computer_fill_hard
-    display_difficulty()
+    difficultyText.text = "Difficulty: "..current_difficulty:upper()
+    difficultyText:setFillColor(current_difficulty == "easy" and 0 or 1, current_difficulty == "hard" and 0 or 1, 0)
 end
-local buttonObjects = {}
+
 -- Game Over function
-local function play_again()
+local function play_again ()
     local sceneGroup = scene.view
 
+    -- cleanup game_over objects
     -- Reset board state
     for i = 1, 9 do
         display.remove(gameInstance.board[i][8])
@@ -222,13 +228,30 @@ local function play_again()
     display.remove(gameOverText)
     gameOverText = nil
 
-    -- Reset game states
+    -- go to order selection before initialising new game
+    select_order()
+
+end
+
+local function initialise_game ()
     taps = 0
     whichTurn = X
     game_state = "in_progress"
+    
+    if current_difficulty == "hard" then
+        computer_fill = computer_fill_hard
+    elseif current_difficulty == "easy" then
+        computer_fill = computer_fill_easy
+    end
 
-    select_order()
+    gameInstance = game:new(nil, current_difficulty, player_order, nil)
+    
+    if player_order == "second" then
+        computer_fill()
+    end 
 
+    create_undo_button()
+    display_difficulty()
 end
 
 local function game_over(game_state)
@@ -375,25 +398,13 @@ end
 -- -----------------------------------------------------------------------------------
 
 function scene:post_difficulty_selection(difficulty)
-    if difficulty == "hard" then
-        computer_fill = computer_fill_hard
-    elseif difficulty == "easy" then
-        computer_fill = computer_fill_easy
-    end
-    if startup then
-        select_order()
-        startup = false
-    end
     current_difficulty = difficulty
-    display_difficulty()
+    select_order()
 end
 
 function scene:post_order_selection(order)
-    gameInstance = game:new(nil, current_difficulty, order, nil)
-    if order == "second" then
-        computer_fill()
-    end 
-    create_undo_button()
+    player_order = order
+    initialise_game()
 end
 -- create()
 function scene:create( event )
