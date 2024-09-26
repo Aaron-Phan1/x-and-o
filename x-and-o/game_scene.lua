@@ -40,20 +40,7 @@ local buttonGap = w5 + w2_5
 local buttonY = h90
 --PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
 
-board ={
 
-{"tl", 1, w20, h40, w40, h20,0, nil},
-{"tm",2, w40,h40,w60,h20,0, nil},
-{"tr",3, w60,h40,w80,h20,0, nil},
-
-{"ml", 4, w20, h60, w40, h40,0, nil},
-{"mm",5, w40,h60,w60,h40,0, nil},
-{"mr",6, w60,h60,w80,h40,0, nil},
-
-{"bl", 7, w20, h80, w40, h60,0, nil},
-{"bm",8, w40,h80,w60,h60,0, nil},
-{"br",9, w60,h80,w80,h60,0, nil}
-}
 
 -- GAME CONSTANTS
 local taps = 0 -- track moves done
@@ -71,9 +58,92 @@ local TEXT_SIZE = 20
 
 -- Fill function for computer based on difficulty
 local current_difficulty = nil
+local player_order = nil
 local computer_fill = nil 
 -- OVERLAY FUNCTIONS
 startup = true
+
+
+local game = {
+    EMPTY = 0,
+    X = "X",
+    O = "O",
+}
+
+function game:new(o, difficulty, play_order, history)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    self.board = board or {
+
+        {"tl", 1, w20, h40, w40, h20,0, nil},
+        {"tm",2, w40,h40,w60,h20,0, nil},
+        {"tr",3, w60,h40,w80,h20,0, nil},
+        
+        {"ml", 4, w20, h60, w40, h40,0, nil},
+        {"mm",5, w40,h60,w60,h40,0, nil},
+        {"mr",6, w60,h60,w80,h40,0, nil},
+        
+        {"bl", 7, w20, h80, w40, h60,0, nil},
+        {"bm",8, w40,h80,w60,h60,0, nil},
+        {"br",9, w60,h80,w80,h60,0, nil}
+    }
+    self.difficulty = difficulty
+    self.playerTurn = playerTurn
+    self.computerTurn = computerTurn
+    self.history = history or {}
+    return o
+end
+
+function game:execute_command(command)
+    self.board = command:execute(self.board)
+    table.insert(self.history, command)
+end
+
+function game:undo()
+    local command = table.remove(self.history)
+    self.board = command:undo(self.board)
+end
+
+function game:get_board()
+    return self.board
+end
+
+local play_move_command = {
+    board = nil
+}
+
+function play_move_command:new(o, cell_num, curr_turn)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    self.cell_num = cell_num
+    self.curr_turn = curr_turn
+    return o
+end
+
+function play_move_command:execute(game_board)
+    -- Set cell state to X or O
+    local board = game_board
+    board[self.cell_num][7] = self.curr_turn 
+
+    -- Draw X or O in cell
+    board[self.cell_num][8] = d.newText(self.curr_turn, board[self.cell_num][3] + w20 / 2, board[self.cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
+
+    -- Add text to scene group
+    scene.view:insert(board[self.cell_num][8])
+    return board
+end
+
+function play_move_command:undo()
+    -- Set cell state to EMPTY
+    self.board[self.cell_num][7] = EMPTY
+
+    -- Remove X or O from cell
+    display.remove(self.board[self.cell_num][8])
+    self.board[self.cell_num][8] = nil
+end
+
 -- Show overlay to select difficulty
 local function select_difficulty(event)
     local options = {
@@ -85,7 +155,6 @@ local function select_difficulty(event)
 end
 
 -- Show overlay to choose whether to go first or second
-local difficultyText = nil
 local function select_order(event)
     local options = {
         effect = "fromLeft",
@@ -95,10 +164,29 @@ local function select_order(event)
     composer.showOverlay("select_order_overlay", options)
 end
 
+local function create_undo_button()
+    local sceneGroup = scene.view
+    local undoButton = widget.newButton(
+        {
+            label = "Undo",
+            onRelease = nil,
+            shape = "roundedRect",
+            width = buttonWidth,
+            height = buttonHeight,
+            x = w80,
+            y = buttonY,
+            fontSize = 16
+        }
+    )
+    sceneGroup:insert(undoButton)
+end
 local function display_difficulty()
 
-    display.remove(difficultyText)
-    difficultyText = nil
+    if difficultyText then
+        display.remove(difficultyText)
+    end
+
+    local difficultyText = nil
 
     local sceneGroup = scene.view
     difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
@@ -122,16 +210,9 @@ local function play_again()
 
     -- Reset board state
     for i = 1, 9 do
-        display.remove(board[i][8])
-        board[i][8] = nil
-        board[i][7] = EMPTY
+        display.remove(gameInstance.board[i][8])
+        gameInstance.board[i][8] = nil
     end
-
-    -- Reset game states
-    taps = 0
-    whichTurn = X
-    game_state = "in_progress"
-
     -- Remove game over text and buttons
     for _, button in ipairs(buttonObjects) do
         display.remove(button)
@@ -140,6 +221,13 @@ local function play_again()
 
     display.remove(gameOverText)
     gameOverText = nil
+
+    -- Reset game states
+    taps = 0
+    whichTurn = X
+    game_state = "in_progress"
+
+    select_order()
 
 end
 
@@ -222,23 +310,14 @@ end
 
 ---- Play a move
 local function play_move (cell_num, difficulty)
-    local sceneGroup = scene.view
-
     local mode = difficulty == "hard" and "HARD COMPUTER" or difficulty == "easy" and "EASY COMPUTER"
                 or difficulty == "player" and "PLAYER"
-
-    -- Set cell state to X or O
-    board[cell_num][7] = whichTurn 
-
-    -- Draw X or O in cell
-    board[cell_num][8] = d.newText(whichTurn, board[cell_num][3] + w20 / 2, board[cell_num][6] + h20 / 2, FONT, TEXT_SIZE)
-
+    gameInstance:execute_command(play_move_command:new(nil, cell_num, whichTurn))
     -- Add text to scene group
-    sceneGroup:insert(board[cell_num][8])
 
     print(mode.." ("..whichTurn..") ".."Cell Number: "..cell_num)
     taps = taps + 1 -- Increment tap counter to account for current move before checking game state 
-    check_game_state(board, difficulty, whichTurn, taps)
+    check_game_state(gameInstance:get_board(), difficulty, whichTurn, taps)
     -- Switch turns after checking game state so that the winner is displayed correctly
     whichTurn = whichTurn == X and O or X
 end
@@ -250,7 +329,7 @@ end
 local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
 function computer_fill_hard (event)
     if game_state == "in_progress" then
-        local hardModeInstance = hard_mode_logic:new(nil, board, whichTurn, taps)
+        local hardModeInstance = hard_mode_logic:new(nil, gameInstance:get_board(), whichTurn, taps)
         local best_move = hardModeInstance:get_best_move()
         if best_move then
             play_move(best_move, 'hard')
@@ -262,7 +341,7 @@ end
 local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
 function computer_fill_easy ()
     if game_state == "in_progress" then
-        local easyModeInstance = easy_mode_logic:new(nil, board, taps)
+        local easyModeInstance = easy_mode_logic:new(nil, gameInstance:get_board(), taps)
         local best_move = easyModeInstance:get_best_move()
         if best_move then
             play_move(best_move, 'easy')
@@ -275,9 +354,9 @@ end
 local function fill (event)
     if event.phase == "began" and game_state == "in_progress" then
         for t = 1, 9 do -- Check which tile was touched
-            if event.x > board[t][3] and event.x < board [t][5] then
-                if event.y < board[t][4] and event.y > board[t][6] then
-                    if board[t][7] == EMPTY then
+            if event.x > gameInstance:get_board()[t][3] and event.x < gameInstance:get_board() [t][5] then
+                if event.y < gameInstance:get_board()[t][4] and event.y > gameInstance:get_board()[t][6] then
+                    if gameInstance:get_board()[t][7] == EMPTY then
                         play_move(t, "player")
                         computer_fill()
 
@@ -310,10 +389,11 @@ function scene:post_difficulty_selection(difficulty)
 end
 
 function scene:post_order_selection(order)
-    if order == "first" then
-    elseif order == "second" then
+    gameInstance = game:new(nil, current_difficulty, order, nil)
+    if order == "second" then
         computer_fill()
     end 
+    create_undo_button()
 end
 -- create()
 function scene:create( event )
@@ -353,9 +433,7 @@ function scene:show( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
-
         Runtime:addEventListener("touch", fill)
-
         -- Show difficulty selection overlay when scene is initially shown 
         select_difficulty()
     end
