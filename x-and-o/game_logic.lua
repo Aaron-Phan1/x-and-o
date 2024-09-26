@@ -25,6 +25,8 @@ function game:new(o, difficulty, playerOrder, moveHistory)
     self.difficulty = difficulty
     self.playerOrder = playerOrder
     self.moveHistory = moveHistory or {}
+    self.result = nil
+    
     return o
 end
 

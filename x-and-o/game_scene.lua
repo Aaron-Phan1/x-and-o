@@ -65,6 +65,7 @@ local computer_fill = nil
 local difficultyText = nil
 local buttonObjects = {}
 local undoButton = nil
+local gameOverText = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -212,6 +213,7 @@ local function initialise_game ()
 end
 
 local function game_over(game_state)
+    gameInstance.result = game_state
     local sceneGroup = scene.view
     if game_state == "player_won" then
         gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)

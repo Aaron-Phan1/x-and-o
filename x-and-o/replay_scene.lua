@@ -40,7 +40,7 @@ h90 = d.contentHeight * .9
 local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
-local game_state = nil
+local result = nil
 
 
 -- FONT CONSTANTS
@@ -65,6 +65,7 @@ local computer_fill = nil
 local difficultyText = nil
 local buttonObjects = {}
 local undoButton = nil
+local resultText = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -75,20 +76,26 @@ local moveHistory = {}
 local gameInstance = nil
 local difficulty = nil
 local player_order = nil
+local result = nil
 local pointer = 0
 
 local game = require("game_logic")
 local play_move_command = require("play_move_logic")
 
-
-local function initialise_replay(gameInstance)
-    moveHistory = gameInstance.moveHistory
-    difficulty = gameInstance.difficulty
-    playerOrder = gameInstance.player_order
-    playerTurn = player_order == "first" and X or O
-    computerTurn = player_order == "first" and O or X
-
-    replayInstance = game:new(nil, difficulty, player_order)
+local function display_result()
+    local sceneGroup = scene.view
+    if result == "player_won" then
+        resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif result == "ai_won" then
+        resultText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(1, 0, 0) -- Set text color to red
+    elseif result == "draw" then
+        resultText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(0, 0, 1) -- Set text color to blue
+    end
+    sceneGroup:insert(resultText)
+    
 end
 
 local function replay_move()
@@ -99,9 +106,20 @@ local function replay_move()
         replayInstance:execute_command(command)
         scene.view:insert(replayInstance.board[command.cell_num][8])
     end
+
+    if pointer == #moveHistory and not resultText then
+        display_result()
+    end
 end
 
 local function undo_move()
+    if resultText then
+        print("alo")
+        print(resultText)
+        display.remove(resultText)
+        resultText = nil
+    end
+
     if pointer > 0 then
         replayInstance:undo()
         pointer = pointer - 1
@@ -142,8 +160,8 @@ local function display_difficulty()
     difficultyText = nil
 
     local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
-    if current_difficulty == "easy" then
+    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    if difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
     elseif current_difficulty == "hard" then
         difficultyText:setFillColor(1, 0, 0) -- Set text color to red
@@ -151,22 +169,17 @@ local function display_difficulty()
     sceneGroup:insert(difficultyText)
 end
 
+local function initialise_replay(gameInstance)
+    moveHistory = gameInstance.moveHistory
+    difficulty = gameInstance.difficulty
+    playerOrder = gameInstance.player_order
+    result = gameInstance.result
+    playerTurn = player_order == "first" and X or O
+    computerTurn = player_order == "first" and O or X
 
----- Play a move
-local function play_move (cell_num, player_type)
-
-    gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
-    scene.view:insert(gameInstance.board[cell_num][8])
-    local player_lookup = {
-        hard = "HARD COMPUTER",
-        easy = "EASY COMPUTER",
-        player = "PLAYER"
-    }
-
-    print(string.format("%s (%s) Cell Number: %d", player_lookup[player_type], whichTurn, cell_num))
-
-
-    -- Switch turns after checking game state so that the winner is called correctly in check_game_state
+    replayInstance = game:new(nil, difficulty, player_order)
+    replayInstance.result = result
+    display_difficulty()
 end
 
 
@@ -202,6 +215,7 @@ function scene:create( event )
     sceneGroup:insert(tline)
 
     initialise_replay(params.gameInstance)
+    make_buttons(sceneGroup)
 end
  
  
@@ -210,7 +224,6 @@ function scene:show( event )
  
     local sceneGroup = self.view
     local phase = event.phase
-    local params = event.params
  
     if ( phase == "will" ) then
         -- Code here runs when the scene is still off screen (but is about to come on screen)
@@ -218,7 +231,6 @@ function scene:show( event )
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
         -- Show difficulty selection overlay when scene is initially shown 
-    make_buttons(sceneGroup)
 
     end
 end
