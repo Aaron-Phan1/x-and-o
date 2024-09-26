@@ -56,7 +56,7 @@ local buttonY = h90
 
 -- Fill function for computer based on difficulty
 local current_difficulty = nil
-local player_order = nil
+local playerOrder = nil
 local playerTurn = nil
 local computerTurn = nil
 local computer_fill = nil 
@@ -183,6 +183,13 @@ local function play_again ()
 
 end
 
+local function watch_replay ()
+    local sceneGroup = scene.view
+
+    -- go to replay scene
+    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance}})
+end
+
 local function initialise_game ()
     taps = 0
     whichTurn = X
@@ -194,9 +201,9 @@ local function initialise_game ()
         computer_fill = computer_fill_easy
     end
 
-    gameInstance = game:new(nil, current_difficulty, player_order, nil)
+    gameInstance = game:new(nil, current_difficulty, playerOrder, nil)
     
-    if player_order == "second" then
+    if playerOrder == "second" then
         computer_fill()
     end 
 
@@ -221,7 +228,7 @@ local function game_over(game_state)
     local buttons = {
         {label = "Change\nDifficulty", onRelease = change_difficulty},
         {label = "Play\nAgain", onRelease = play_again},
-        {label = "Watch\nReplay"}
+        {label = "Watch\nReplay", onRelease = watch_replay}
     }
 
     local buttonX = w20
@@ -364,9 +371,9 @@ function scene:post_difficulty_selection(difficulty)
 end
 
 function scene:post_order_selection(order)
-    player_order = order
-    playerTurn = player_order == "first" and X or O 
-    computerTurn = player_order == "first" and O or X
+    playerOrder = order
+    playerTurn = playerOrder == "first" and X or O 
+    computerTurn = playerOrder == "first" and O or X
     initialise_game()
 end
 -- create()
