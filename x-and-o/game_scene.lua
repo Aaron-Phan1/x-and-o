@@ -181,6 +181,9 @@ local function play_again ()
     display.remove(gameOverText)
     gameOverText = nil
 
+    display.remove(winStrikethrough)
+    winStrikethrough = nil
+
     -- go to order selection before initialising new game
     select_order()
 
@@ -197,6 +200,8 @@ local function initialise_game ()
     taps = 0
     whichTurn = X
     gameState = "in_progress"
+    winningCells = nil
+    winDirection = nil
     
     if current_difficulty == "hard" then
         computer_fill = computer_fill_hard
@@ -215,6 +220,10 @@ local function initialise_game ()
 end
 
 local function game_over(gameState)
+    -- Remove display objects from previous game state
+    display.remove(undoButton)
+    undoButton = nil
+
     gameInstance.result = gameState
     local sceneGroup = scene.view
     if gameState == "player_won" then
@@ -251,7 +260,6 @@ local function game_over(gameState)
         sceneGroup:insert(winStrikethrough)
     end
 
-    sceneGroup:insert(winStrikethrough)
 
     local buttons = {
         {label = "Change\nDifficulty", onRelease = change_difficulty},
@@ -335,6 +343,10 @@ local function play_move (cell_num, player_type)
 
     gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
     scene.view:insert(gameInstance.board[cell_num][8])
+    if player_type == "player" then
+        enable_undo()
+    end
+
     local player_lookup = {
         hard = "HARD COMPUTER",
         easy = "EASY COMPUTER",
@@ -348,9 +360,7 @@ local function play_move (cell_num, player_type)
     -- Switch turns after checking game state so that the winner is called correctly in check_game_state
     whichTurn = whichTurn == X and O or X
 
-    if player_type == "player" then
-        enable_undo()
-    end
+
 end
 
 -- Computer fill functions
