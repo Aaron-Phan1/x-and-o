@@ -1,7 +1,7 @@
 local composer = require( "composer" )
  
 local scene = composer.newScene()
- 
+
 local widget = require("widget")
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
@@ -42,6 +42,7 @@ local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local gameState = nil
 local winningCells = nil
+local initial_load = true
 
 
 -- FONT CONSTANTS
@@ -177,9 +178,9 @@ local function play_again ()
         gameInstance.board[i][8] = nil
     end
     -- Remove game over text and buttons
-    for _, button in ipairs(buttonObjects) do
+    for btn_index, button in ipairs(buttonObjects) do
         display.remove(button)
-        button = nil
+        buttonObjects[btn_index] = nil
     end
 
     display.remove(gameOverText)
@@ -225,11 +226,11 @@ end
 
 local function game_over(gameState)
     -- Remove display objects from previous game state
+    local sceneGroup = scene.view
     display.remove(undoButton)
     undoButton = nil
 
     gameInstance.result = gameState
-    local sceneGroup = scene.view
     if gameState == "player_won" then
         gameOverText = d.newText("You Win", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
         gameOverText:setFillColor(0, 1, 0) -- Set text color to green
@@ -472,7 +473,10 @@ function scene:show( event )
         -- Code here runs when the scene is entirely on screen
         Runtime:addEventListener("touch", fill)
         -- Show difficulty selection overlay when scene is initially shown 
-        select_difficulty()
+        if initial_load then
+            select_difficulty()
+            initial_load = false
+        end
     end
 end
  
