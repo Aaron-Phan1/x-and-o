@@ -157,8 +157,7 @@ local function disable_undo ()
     undoButton:setFillColor(0.5, 0.5, 0)
 end
 
-local function drawWinLine ()
-    local sceneGroup = scene.view
+local function drawWinLine (group)
     local x1, y1, x2, y2
     winLineInfo = {}
 
@@ -189,7 +188,7 @@ local function drawWinLine ()
 
     winStrikethrough:setStrokeColor(r, g, b)
 
-    sceneGroup:insert(winStrikethrough)
+    group:insert(winStrikethrough)
 
     -- Record line info to recreate in replay scene
     winLineInfo.x1, winLineInfo.y1, winLineInfo.x2, winLineInfo.y2 = x1, y1, x2, y2
@@ -245,6 +244,48 @@ local function watch_replay ()
     composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winLineInfo = winLineInfo}})
 end
 
+local function display_game_over_objects(group)
+    -- Create buttons for changing difficulty, play again, and watch replay
+    local buttonsInfo = {
+        {label = "Change\nDifficulty", onRelease = change_difficulty},
+        {label = "Play\nAgain", onRelease = play_again},
+        {label = "Watch\nReplay", onRelease = watch_replay}
+    }
+
+    local buttonX = w20
+    for i, buttonConfig in ipairs(buttonsInfo) do
+        local button = widget.newButton(
+            {
+                label = buttonConfig.label,
+                labelColor = { default={0,0,0}, over={0,0,0} },
+                shape = "roundedRect",
+                width = buttonWidth,
+                height = buttonHeight,
+                onRelease = buttonConfig.onRelease,
+                x = buttonX,
+                y = buttonY,
+                fontSize = BTN_TEXT_SIZE
+            }
+        )
+        group:insert(button)
+        table.insert(buttonObjects, button)
+        buttonX = buttonX + buttonWidth + buttonGap
+    end
+
+    -- Display game over text
+    if gameState == "player_won" then
+        gameOverText = d.newText("You Win", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
+        gameOverText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif gameState == "ai_won" then
+        gameOverText = d.newText("You Lose", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
+        gameOverText:setFillColor(1, 0, 0) -- Set text color to red
+    elseif gameState == "draw" then
+        gameOverText = d.newText("Draw", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
+        gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
+    end
+    group:insert(gameOverText)
+end
+
 local function initialise_game (group)
     taps = 0
     whichTurn = X
@@ -275,49 +316,14 @@ local function game_over(gameState)
     undoButton = nil
 
     gameInstance.result = gameState
-    if gameState == "player_won" then
-        gameOverText = d.newText("You Win", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif gameState == "ai_won" then
-        gameOverText = d.newText("You Lose", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(1, 0, 0) -- Set text color to red
-    elseif gameState == "draw" then
-        gameOverText = d.newText("Draw", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
-    end
-    sceneGroup:insert(gameOverText)
     
     -- Draw line through winning cells
     if winningCells then
-        drawWinLine()
+        drawWinLine(sceneGroup)
     end
 
-
-    local buttons = {
-        {label = "Change\nDifficulty", onRelease = change_difficulty},
-        {label = "Play\nAgain", onRelease = play_again},
-        {label = "Watch\nReplay", onRelease = watch_replay}
-    }
-
-    local buttonX = w20
-    for i, buttonConfig in ipairs(buttons) do
-        local button = widget.newButton(
-            {
-                label = buttonConfig.label,
-                labelColor = { default={0,0,0}, over={0,0,0} },
-                shape = "roundedRect",
-                width = buttonWidth,
-                height = buttonHeight,
-                onRelease = buttonConfig.onRelease,
-                x = buttonX,
-                y = buttonY,
-                fontSize = BTN_TEXT_SIZE
-            }
-        )
-        sceneGroup:insert(button)
-        table.insert(buttonObjects, button)
-        buttonX = buttonX + buttonWidth + buttonGap
-    end
+    -- Display game over text and change difficulty, play again, and watch replay buttons
+    display_game_over_objects(sceneGroup, gameState)
 end
 
 -- Game State functions
