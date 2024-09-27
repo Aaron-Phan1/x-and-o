@@ -43,7 +43,6 @@ local BTN_TEXT_SIZE = 40
 local game_over_y = h10 + h2_5
 local buttonWidth = w20 + w2_5
 local buttonHeight = h10
-local buttonGap = w5 + w2_5
 local buttonY = h90
 
 -- Display objects
@@ -69,16 +68,21 @@ local computerTurn = nil
 local game = require("game_logic")
 local play_move_command = require("play_move_logic")
 
+local function new_game()
+    composer.gotoScene("game_scene")
+end
 
 local function replay_move()
     local sceneGroup = scene.view
     if pointer < #moveHistory then
-        pointer = pointer + 1
+        -- pointer increments at start so that undo can be called on the correct command
+        pointer = pointer + 1 
     
         local command = moveHistory[pointer]
         replayInstance:execute_command(command)
     end
 
+    -- Display game result if last move is replayed
     if pointer == #moveHistory then
         resultText.isVisible = true
         if winStrikethrough then winStrikethrough.isVisible = true end
@@ -86,6 +90,7 @@ local function replay_move()
 end
 
 local function undo_move()
+    -- Only show game result and strikethrough on the last move
     if resultText.isVisible then resultText.isVisible = false end
     if winStrikethrough and winStrikethrough.isVisible then 
         winStrikethrough.isVisible = false
@@ -98,21 +103,6 @@ local function undo_move()
 end
 
 local function make_buttons (group)
-    local forwardButton = widget.newButton(
-        {
-            label = ">",
-            onRelease = replay_move,
-            shape = "roundedRect",
-            x = w80,
-            y = h90,
-            width = buttonWidth,
-            height = buttonHeight,
-            fontSize = BTN_TEXT_SIZE,
-            font = FONT,
-            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
-        }
-    )
-    group:insert(forwardButton)
     local backButton = widget.newButton(
         {
             label = "<",
@@ -128,6 +118,37 @@ local function make_buttons (group)
         }
     )
     group:insert(backButton)
+    local forwardButton = widget.newButton(
+        {
+            label = ">",
+            onRelease = replay_move,
+            shape = "roundedRect",
+            x = w80,
+            y = h90,
+            width = buttonWidth,
+            height = buttonHeight,
+            fontSize = BTN_TEXT_SIZE,
+            font = FONT,
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
+        }
+    )
+    group:insert(forwardButton)
+
+    local returnButton = widget.newButton(
+        {
+            label = "Return",
+            onRelease = new_game,
+            shape = "roundedRect",
+            x = w50,
+            y = h90,
+            width = buttonWidth,
+            height = buttonHeight,
+            fontSize = 16,
+            font = FONT,
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
+        }
+    )
+    group:insert(returnButton)
 end
 
 -- Initialise replay scene with game instance data
