@@ -159,7 +159,6 @@ local function initialise_replay(params, group)
     -- get finished game instance variables from params
     moveHistory = params.gameInstance.moveHistory
     difficulty = params.gameInstance.difficulty
-    playerOrder = params.gameInstance.player_order
     result = params.gameInstance.result
     winLineInfo = params.winLineInfo
     gameOverTextInfo = params.gameOverTextInfo
@@ -199,7 +198,7 @@ local function initialise_replay(params, group)
         group:insert(winStrikethrough)
     end
     -- create game instance for replay
-    replayInstance = game:new(nil, difficulty, player_order, group)
+    replayInstance = game:new(nil, difficulty, group)
     
 end
 

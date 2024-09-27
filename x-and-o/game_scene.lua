@@ -40,14 +40,20 @@ h90 = d.contentHeight * .9
 local taps = 0 -- track moves done
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
+
+-- Game state variables
 local gameState = nil
 local winningCells = nil
 local winDirection = nil
 local gameOverTextInfo = {}
 local winLineInfo = nil
+local playerTurn = nil
+local difficulty = nil
+local computer_fill = nil 
+
+-- Variables to handle transitions between replay and game scene
 local initial_load = true
 local renew_replay = false
-
 
 -- FONT CONSTANTS
 local FONT = "Arial"
@@ -61,30 +67,48 @@ local buttonHeight = h10
 local buttonGap = w5 + w2_5
 local buttonY = h90
 
--- Fill function for computer based on difficulty
-local difficulty = nil
-local playerOrder = nil
-local playerTurn = nil
-local computerTurn = nil
-local computer_fill = nil 
-
 -- Display objects
 local difficultyText = nil
 local buttonObjects = {}
 local undoButton = nil
 local gameOverText = nil
 local winStrikethrough = nil
--- OVERLAY FUNCTIONS
 
--- forward declaration so that the function can be called before it is defined
+-- forward declaration so that function order doesn't matter
 local computer_fill_hard
 local computer_fill_easy
+local select_difficulty
+local select_order
+local display_difficulty
+local change_difficulty
+local create_undo_button
+local enable_undo
+local disable_undo
+local drawWinLine
+local undo_last_player_move
+local play_again
+local watch_replay
+local display_game_over_objects
+local initialise_game
+local game_over
+local check_game_state
+local play_move
+local computer_fill_hard
+local computer_fill_easy
+local fill
 
-
+-- Import modules required for making and display moves 
+-- using command pattern to support undo
 local game = require("game_logic")
-local play_move_command = require("play_move_logic")
+local play_move_command = require("play_move_logic") 
+
+-- Import modules required for computer moves
+local hard_mode_logic = require("hard_mode_logic") 
+local easy_mode_logic = require("easy_mode_logic") 
+-- -----------------------------------------------------------------------------------
+---- Overlay scene transitions
 -- Show overlay to select difficulty
-local function select_difficulty(event)
+function select_difficulty(event)
     local options = {
         effect = "fromLeft",
         time = 500,
@@ -94,7 +118,8 @@ local function select_difficulty(event)
 end
 
 -- Show overlay to choose whether to go first or second
-local function select_order(event)
+-- Order selection is called right before initialising the game
+function select_order(event)
     local options = {
         effect = "fromLeft",
         time = 200,
@@ -102,8 +127,11 @@ local function select_order(event)
     }
     composer.showOverlay("select_order_overlay", options)
 end
-
-local function display_difficulty()
+---- End of overlay scene transitions
+-- -----------------------------------------------------------------------------------
+---- Display object creation functions
+-- Difficulty text is displayed at all times, and created after initial difficulty selection
+function display_difficulty()
 
     display.remove(difficultyText)
     difficultyText = nil
@@ -119,13 +147,8 @@ local function display_difficulty()
     sceneGroup:insert(difficultyText)
 end
 
-local function change_difficulty(event)
-    difficulty = difficulty == "hard" and "easy" or "hard"
-    difficultyText.text = "Difficulty: "..difficulty:upper()
-    difficultyText:setFillColor(difficulty == "easy" and 0 or 1, difficulty == "hard" and 0 or 1, 0)
-end
-
-local function create_undo_button()
+-- Undo button is displayed when game is in progress
+function create_undo_button()
     local sceneGroup = scene.view
     undoButton = widget.newButton(
         {
@@ -146,19 +169,8 @@ local function create_undo_button()
     sceneGroup:insert(undoButton)
 end
 
-local function enable_undo ()
-    undoButton:setEnabled(true)
-
-    undoButton:setFillColor(1, 1, 0)
-end
-
-local function disable_undo ()
-    undoButton:setEnabled(false)
-
-    undoButton:setFillColor(0.5, 0.5, 0)
-end
-
-local function drawWinLine (group)
+-- Line is drawn through winning cells (if any) when game is over
+function drawWinLine (group)
     local x1, y1, x2, y2
     winLineInfo = {}
 
@@ -198,66 +210,11 @@ local function drawWinLine (group)
     winLineInfo.r, winLineInfo.g, winLineInfo.b = r, g, b  
 end
 
-function undo_last_player_move ()
-    -- Undo moves until the last player move
-    while gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn do
-        gameInstance:undo()
-        taps = taps - 1
-    end
-    -- Undo the player's last move
-    gameInstance:undo()
-    taps = taps - 1
-    disable_undo()
-end
-
-
--- Game Over function
-local function play_again ()
-    local sceneGroup = scene.view
-
-    -- cleanup game_over objects
-    -- Reset board state
-    for i = 1, 9 do
-        display.remove(gameInstance.board[i][8])
-        gameInstance.board[i][8] = nil
-    end
-    -- Remove game over text and buttons
-    for btn_index, button in ipairs(buttonObjects) do
-        display.remove(button)
-        buttonObjects[btn_index] = nil
-    end
-
-    display.remove(gameOverText)
-    gameOverText = nil
-
-    display.remove(winStrikethrough)
-    winStrikethrough = nil
-
-    -- go to order selection before initialising new game
-    select_order()
-
-end
-
-local function watch_replay ()
-    local sceneGroup = scene.view
-
-    -- go to replay scene
-    if renew_replay then
-        renew_replay = false
-        composer.removeScene("replay_scene")
-    end
-
-    composer.gotoScene("replay_scene", {
-        params = {
-            gameInstance = gameInstance, 
-            winLineInfo = winLineInfo, 
-            gameOverTextInfo = gameOverTextInfo}})
-end
-
-local function display_game_over_objects(group)
-    -- Create buttons for changing difficulty, play again, and watch replay
+-- Display game over text and buttons for changing difficulty, playing again, and watching replay
+function display_game_over_objects(group)
+    -- Change difficulty button is a shortcut to the difficulty selection overlay
     local buttonsInfo = {
-        {label = "Change\nDifficulty", onRelease = change_difficulty},
+        {label = "Change\nDifficulty", onRelease = change_difficulty}, 
         {label = "Play\nAgain", onRelease = play_again},
         {label = "Watch\nReplay", onRelease = watch_replay}
     }
@@ -279,7 +236,7 @@ local function display_game_over_objects(group)
         )
         group:insert(button)
         table.insert(buttonObjects, button)
-        buttonX = buttonX + buttonWidth + buttonGap
+        buttonX = buttonX + buttonWidth + buttonGap -- based off x and y being the center of the button
     end
 
     -- Display game over text
@@ -300,6 +257,87 @@ local function display_game_over_objects(group)
     gameOverTextInfo.color = options.color
 end
 
+---- End of display object creation functions
+-- -----------------------------------------------------------------------------------
+---- Button event handlers
+
+-- Undo button handler - available during game in progress
+-- Undo button uses command pattern functionality in play_move_logic and game_logic
+function undo_last_player_move ()
+    -- Undo move if the last move was made by the computer
+    if gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn then
+        gameInstance:undo()
+        taps = taps - 1
+    end
+
+    -- Undo the player's last move
+    gameInstance:undo()
+    taps = taps - 1
+    disable_undo() -- Disable undo since the player's last move has been undone
+end
+
+function disable_undo ()
+    undoButton:setEnabled(false)
+    undoButton:setFillColor(0.5, 0.5, 0)
+end
+
+-- Change difficulty shortcut button handler -- available after game over
+function change_difficulty(event)
+    difficulty = difficulty == "hard" and "easy" or "hard" -- Toggle difficulty between easy and hard
+    difficultyText.text = "Difficulty: "..difficulty:upper()
+    difficultyText:setFillColor(difficulty == "easy" and 0 or 1, difficulty == "hard" and 0 or 1, 0)
+end
+
+-- Play again button handler - available after game over
+function play_again ()
+    local sceneGroup = scene.view
+
+    -- cleanup game_over objects
+    display.remove(gameOverText)
+    gameOverText = nil
+
+    display.remove(winStrikethrough)
+    winStrikethrough = nil
+
+    -- Reset board state
+    for i = 1, 9 do
+        display.remove(gameInstance.board[i][8])
+        gameInstance.board[i][8] = nil
+    end
+    -- Remove game over text and buttons
+    for btn_index, button in ipairs(buttonObjects) do
+        display.remove(button)
+        buttonObjects[btn_index] = nil
+    end
+
+    -- go to order selection before initialising new game
+    select_order()
+
+end
+
+-- Watch replay button handler - available after game over
+function watch_replay ()
+    local sceneGroup = scene.view
+
+    -- Remove replay scene of previous game if it exists
+    if renew_replay then 
+        renew_replay = false
+        composer.removeScene("replay_scene")
+    end
+
+    composer.gotoScene("replay_scene", {
+        -- Pass gameInstance data to replay scene
+        -- winLineInfo and gameOverTextInfo are used to recreate display objects
+        params = {
+            gameInstance = gameInstance, 
+            winLineInfo = winLineInfo, 
+            gameOverTextInfo = gameOverTextInfo}})
+end
+
+---- End of button event handlers
+-- -----------------------------------------------------------------------------------
+---- Game State functions
+
 local function initialise_game (group)
     taps = 0
     whichTurn = X
@@ -317,9 +355,9 @@ local function initialise_game (group)
         computer_fill = computer_fill_easy
     end
 
-    gameInstance = game:new(nil, difficulty, playerOrder, group)
+    gameInstance = game:new(nil, difficulty, group)
     
-    if playerOrder == "second" then
+    if playerTurn == O then
         computer_fill()
     end 
 
@@ -327,7 +365,7 @@ local function initialise_game (group)
 
 end
 
-local function game_over(gameState)
+function game_over(gameState)
     -- Remove display objects from previous game state
     local sceneGroup = scene.view
     display.remove(undoButton)
@@ -344,11 +382,8 @@ local function game_over(gameState)
     display_game_over_objects(sceneGroup, gameState)
 end
 
--- Game State functions
-
--- Game Logic
----- Check for winner
-local function check_game_state (game_board, difficulty, curr_turn, taps)
+---Check for win/draw
+function check_game_state (game_board, difficulty, curr_turn, taps)
     -- Check for horizontal, vertical, and diagonal wins
     win = nil
     local winning_combinations = {
@@ -393,9 +428,11 @@ local function check_game_state (game_board, difficulty, curr_turn, taps)
         game_over(gameState)
     end
 end
-
----- Play a move
-local function play_move (cell_num, player_type)
+---- End of game state functions
+-- -----------------------------------------------------------------------------------
+---- Game Logic functions
+-- Used to play moves for player and computer
+function play_move (cell_num, player_type)
 
     gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
     if player_type == "player" then
@@ -418,11 +455,14 @@ local function play_move (cell_num, player_type)
 
 end
 
--- Computer fill functions
----- COMPUTER TURN (HARD) 
+-- Enable undo button after player's move
+function enable_undo ()
+    undoButton:setEnabled(true)
+    undoButton:setFillColor(1, 1, 0)
+end
 
-
-local hard_mode_logic = require("hard_mode_logic") -- Import hard mode logic module
+---- Computer move logic
+-- COMPUTER TURN (HARD) 
 function computer_fill_hard (event)
     if gameState == "in_progress" then
         local hardModeInstance = hard_mode_logic:new(nil, gameInstance:get_board(), whichTurn, taps)
@@ -434,7 +474,6 @@ function computer_fill_hard (event)
 end
 
 ---- COMPUTER TURN (EASY) - RANDOMLY FILL AN AVAILABLE CELL W/ O
-local easy_mode_logic = require("easy_mode_logic") -- Import easy mode logic module
 function computer_fill_easy ()
     if gameState == "in_progress" then
         local easyModeInstance = easy_mode_logic:new(nil, gameInstance:get_board(), taps)
@@ -444,32 +483,28 @@ function computer_fill_easy ()
         end
     end
 end
+---- End of game logic functions
 -- -----------------------------------------------------------------------------------
-
--- PLAYER TURN - FILL COMPARTMENT W/ X WHEN TOUCHED
-local function fill (event)
+-- Runtime touch event handler
+function fill (event)
     if event.phase == "began" and gameState == "in_progress" then
         for t = 1, 9 do -- Check which tile was touched
             if event.x > gameInstance:get_board()[t][3] and event.x < gameInstance:get_board() [t][5] then
                 if event.y < gameInstance:get_board()[t][4] and event.y > gameInstance:get_board()[t][6] then
                     if gameInstance:get_board()[t][7] == EMPTY then
-                        play_move(t, "player")
+                        play_move(t, "player") -- Player move
                         computer_fill()
-
-                            
-
                     end  
                 end
             end
         end     
     end
-
 end
 
 -- -----------------------------------------------------------------------------------
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
-
+-- Handle parameter passed from difficulty selection overlay
 function scene:post_difficulty_selection(selected_difficulty)
     -- initial difficulty selection when scene shows
     difficulty = selected_difficulty
@@ -477,11 +512,11 @@ function scene:post_difficulty_selection(selected_difficulty)
     select_order()
 end
 
+-- Handle parameter passed from order selection overlay
 function scene:post_order_selection(order)
     local sceneGroup = scene.view
-    playerOrder = order
+    local playerOrder = order
     playerTurn = playerOrder == "first" and X or O 
-    computerTurn = playerOrder == "first" and O or X
     initialise_game(sceneGroup)
 end
 -- create()
@@ -522,7 +557,9 @@ function scene:show( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
+        
         Runtime:addEventListener("touch", fill)
+
         -- Show difficulty selection overlay when scene is initially shown 
         if initial_load then
             select_difficulty()

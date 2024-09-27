@@ -4,7 +4,7 @@ local game = {
     O = "O",
 }
 
-function game:new(o, difficulty, playerOrder, group)
+function game:new(o, difficulty, group)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
@@ -23,7 +23,6 @@ function game:new(o, difficulty, playerOrder, group)
         {"br",9, w60,h80,w80,h60,0, nil}
     }
     self.difficulty = difficulty
-    self.playerOrder = playerOrder
     self.sceneGroup = group
     self.moveHistory = moveHistory or {}
     self.result = nil
