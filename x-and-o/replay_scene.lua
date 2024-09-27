@@ -130,22 +130,7 @@ local function make_buttons (group)
     group:insert(backButton)
 end
 
-
-local function display_difficulty()
-
-    display.remove(difficultyText)
-    difficultyText = nil
-    local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
-    if difficulty == "easy" then
-        difficultyText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif difficulty == "hard" then
-        difficultyText:setFillColor(1, 0, 0) -- Set text color to red
-    end
-    difficultyText.anchorX = 0
-    sceneGroup:insert(difficultyText)
-end
-
+-- Initialise replay scene with game instance data
 local function initialise_replay(params, group)
     -- get finished game instance variables from params
     moveHistory = params.gameInstance.moveHistory
@@ -161,7 +146,18 @@ local function initialise_replay(params, group)
     replayText.anchorX = 0
     replayText:setFillColor(1, 0.5, 0) -- Set text color to orange
     group:insert(replayText)
-    -- create display objects for game result
+
+    -- Create and display the difficulty text
+    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    if difficulty == "easy" then
+        difficultyText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif difficulty == "hard" then
+        difficultyText:setFillColor(1, 0, 0) -- Set text color to red
+    end
+    difficultyText.anchorX = 0
+    group:insert(difficultyText)
+
+    -- create display objects for game result and hide them until last move is replayed
     if result == "player_won" then
         resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
         resultText:setFillColor(0, 1, 0) -- Set text color to green
@@ -182,8 +178,6 @@ local function initialise_replay(params, group)
 
     -- create game instance for replay
     replayInstance = game:new(nil, difficulty, player_order, group)
-    replayInstance.result = result
-    display_difficulty()
 end
 
 
