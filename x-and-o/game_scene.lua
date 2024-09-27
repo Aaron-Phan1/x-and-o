@@ -47,6 +47,8 @@ local winningCells = nil
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 40
+local baseFontSize = 48
+local adjustedSize = baseFontSize * display.contentHeight / 480
 
 -- display object constants
 local game_over_y = h10 + h2_5
@@ -196,7 +198,7 @@ local function watch_replay ()
     composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winStrikethrough = winStrikethrough}})
 end
 
-local function initialise_game ()
+local function initialise_game (group)
     taps = 0
     whichTurn = X
     gameState = "in_progress"
@@ -209,7 +211,7 @@ local function initialise_game ()
         computer_fill = computer_fill_easy
     end
 
-    gameInstance = game:new(nil, current_difficulty, playerOrder, nil)
+    gameInstance = game:new(nil, current_difficulty, playerOrder, group)
     
     if playerOrder == "second" then
         computer_fill()
@@ -342,7 +344,6 @@ end
 local function play_move (cell_num, player_type)
 
     gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
-    scene.view:insert(gameInstance.board[cell_num][8])
     if player_type == "player" then
         enable_undo()
     end
@@ -423,10 +424,11 @@ function scene:post_difficulty_selection(difficulty)
 end
 
 function scene:post_order_selection(order)
+    local sceneGroup = scene.view
     playerOrder = order
     playerTurn = playerOrder == "first" and X or O 
     computerTurn = playerOrder == "first" and O or X
-    initialise_game()
+    initialise_game(sceneGroup)
 end
 -- create()
 function scene:create( event )

@@ -4,7 +4,7 @@ local game = {
     O = "O",
 }
 
-function game:new(o, difficulty, playerOrder, moveHistory)
+function game:new(o, difficulty, playerOrder, group)
     o = o or {}
     setmetatable(o, self)
     self.__index = self
@@ -24,14 +24,15 @@ function game:new(o, difficulty, playerOrder, moveHistory)
     }
     self.difficulty = difficulty
     self.playerOrder = playerOrder
+    self.sceneGroup = group
     self.moveHistory = moveHistory or {}
     self.result = nil
-    
+
     return o
 end
 
 function game:execute_command(command)
-    self.board = command:execute(self.board)
+    self.board = command:execute(self.board, self.sceneGroup)
     table.insert(self.moveHistory, command)
 end
 

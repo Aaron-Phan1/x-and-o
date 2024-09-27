@@ -85,12 +85,12 @@ local play_move_command = require("play_move_logic")
 
 
 local function replay_move()
+    local sceneGroup = scene.view
     if pointer < #moveHistory then
         pointer = pointer + 1
     
         local command = moveHistory[pointer]
         replayInstance:execute_command(command)
-        scene.view:insert(replayInstance.board[command.cell_num][8])
     end
 
     if pointer == #moveHistory then
@@ -154,8 +154,7 @@ local function display_difficulty()
     sceneGroup:insert(difficultyText)
 end
 
-local function initialise_replay(params)
-    local sceneGroup = scene.view
+local function initialise_replay(params, group)
     -- get finished game instance variables from params
     moveHistory = params.gameInstance.moveHistory
     difficulty = params.gameInstance.difficulty
@@ -178,15 +177,15 @@ local function initialise_replay(params)
     end
 
     resultText.isVisible = false
-    sceneGroup:insert(resultText)
+    group:insert(resultText)
 
     if winStrikethrough then
         winStrikethrough.isVisible = false
-        sceneGroup:insert(winStrikethrough)
+        group:insert(winStrikethrough)
     end
 
     -- create game instance for replay
-    replayInstance = game:new(nil, difficulty, player_order)
+    replayInstance = game:new(nil, difficulty, player_order, group)
     replayInstance.result = result
     display_difficulty()
 end
@@ -223,7 +222,7 @@ function scene:create( event )
     sceneGroup:insert(bline)
     sceneGroup:insert(tline)
 
-    initialise_replay(params)
+    initialise_replay(params, sceneGroup)
     make_buttons(sceneGroup)
 
 end
