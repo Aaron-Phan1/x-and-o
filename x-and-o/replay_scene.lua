@@ -39,7 +39,7 @@ local EMPTY, X, O = 0, "X", "O" -- Cell states
 
 -- FONT CONSTANTS
 local FONT = "Arial"
-local TEXT_SIZE = 20
+local TEXT_SIZE = 40
 local BTN_TEXT_SIZE = 40
 
 -- display object position constants
@@ -162,12 +162,13 @@ local function initialise_replay(params, group)
     playerOrder = params.gameInstance.player_order
     result = params.gameInstance.result
     winLineInfo = params.winLineInfo
+    gameOverTextInfo = params.gameOverTextInfo
     
     playerTurn = player_order == "first" and X or O
     computerTurn = player_order == "first" and O or X
 
     -- Create and display the replay text
-    replayText = d.newText("Replay", w2_5, h5, FONT, 10)
+    replayText = d.newText("Replay", w2_5, h5, FONT, 12)
     replayText.anchorX = 0
     replayText:setFillColor(1, 0.5, 0) -- Set text color to orange
     group:insert(replayText)
@@ -183,16 +184,8 @@ local function initialise_replay(params, group)
     group:insert(difficultyText)
 
     -- create display objects for game result and hide them until last move is replayed
-    if result == "player_won" then
-        resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif result == "ai_won" then
-        resultText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(1, 0, 0) -- Set text color to red
-    elseif result == "draw" then
-        resultText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(0, 0, 1) -- Set text color to blue
-    end
+    resultText = d.newText(gameOverTextInfo.options)
+    resultText:setFillColor(unpack(gameOverTextInfo.color))
     resultText.isVisible = false
     group:insert(resultText)
 
@@ -241,7 +234,6 @@ function scene:create( event )
     sceneGroup:insert(rline)
     sceneGroup:insert(bline)
     sceneGroup:insert(tline)
-
     initialise_replay(params, sceneGroup)
     make_buttons(sceneGroup)
 

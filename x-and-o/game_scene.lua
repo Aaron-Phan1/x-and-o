@@ -44,6 +44,7 @@ local gameState = nil
 local winningCells = nil
 local winDirection = nil
 local winningCellsType = nil
+local gameOverTextInfo = {}
 local winLineInfo = nil
 local initial_load = true
 
@@ -241,7 +242,11 @@ local function watch_replay ()
     local sceneGroup = scene.view
 
     -- go to replay scene
-    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winLineInfo = winLineInfo}})
+    composer.gotoScene("replay_scene", {
+        params = {
+            gameInstance = gameInstance, 
+            winLineInfo = winLineInfo, 
+            gameOverTextInfo = gameOverTextInfo}})
 end
 
 local function display_game_over_objects(group)
@@ -273,17 +278,22 @@ local function display_game_over_objects(group)
     end
 
     -- Display game over text
-    if gameState == "player_won" then
-        gameOverText = d.newText("You Win", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif gameState == "ai_won" then
-        gameOverText = d.newText("You Lose", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(1, 0, 0) -- Set text color to red
-    elseif gameState == "draw" then
-        gameOverText = d.newText("Draw", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-        gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
-    end
+    
+    local textOptions = {
+        player_won = {text = "You Win", color = {0, 1, 0}, y},
+        ai_won = {text = "You Lose", color = {1, 0, 0}},
+        draw = {text = "Draw", color = {0, 0, 1}}
+    }
+
+    local options = textOptions[gameState]
+    gameOverText = d.newText(options.text, d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
+    gameOverText:setFillColor(unpack(options.color))
+
     group:insert(gameOverText)
+
+    -- Record game over text info to recreate in replay scene
+    gameOverTextInfo.options = {text = options.text, x = d.contentCenterX, y = gameOverY, font = FONT, fontSize = TEXT_SIZE}
+    gameOverTextInfo.color = options.color
 end
 
 local function initialise_game (group)
