@@ -43,10 +43,10 @@ local whichTurn = X -- X is starting game
 local gameState = nil
 local winningCells = nil
 local winDirection = nil
-local winningCellsType = nil
 local gameOverTextInfo = {}
 local winLineInfo = nil
 local initial_load = true
+local renew_replay = false
 
 
 -- FONT CONSTANTS
@@ -184,7 +184,7 @@ local function drawWinLine (group)
     winStrikethrough.strokeWidth = 5
     winStrikethrough.alpha = 0.8
 
-    winningCellsType = gameInstance.board[winningCells[1]][7]
+    local winningCellsType = gameInstance.board[winningCells[1]][7]
     local r, g, b = winningCellsType == X and 0 or 1, 0, winningCellsType == X and 1 or 0
 
     winStrikethrough:setStrokeColor(r, g, b)
@@ -242,6 +242,11 @@ local function watch_replay ()
     local sceneGroup = scene.view
 
     -- go to replay scene
+    if renew_replay then
+        renew_replay = false
+        composer.removeScene("replay_scene")
+    end
+
     composer.gotoScene("replay_scene", {
         params = {
             gameInstance = gameInstance, 
@@ -278,7 +283,6 @@ local function display_game_over_objects(group)
     end
 
     -- Display game over text
-    
     local textOptions = {
         player_won = {text = "You Win", color = {0, 1, 0}, y},
         ai_won = {text = "You Lose", color = {1, 0, 0}},
@@ -302,6 +306,10 @@ local function initialise_game (group)
     gameState = "in_progress"
     winningCells = nil
     winDirection = nil
+    winLineInfo = nil
+    gameOverTextInfo = {}
+    renew_replay = true
+
     
     if difficulty == "hard" then
         computer_fill = computer_fill_hard
