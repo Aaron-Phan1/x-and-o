@@ -7,6 +7,8 @@ local widget = require("widget")
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
+
+-- content positioning constants
 d = display
 w2_5 = d.contentWidth * .025
 w5 = d.contentWidth * .05
@@ -32,34 +34,17 @@ h70 = d.contentHeight * .7
 h80 = d.contentHeight * .8
 h90 = d.contentHeight * .9
 
---PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
-
-
-
--- GAME CONSTANTS
-local taps = 0 -- track moves done
-local EMPTY, X, O = 0, "X", "O" -- Cell states
-local whichTurn = X -- X is starting game
-local result = nil
-
-
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
+local BTN_TEXT_SIZE = 40
 
--- display object constants
+-- display object position constants
 local game_over_y = h10 + h2_5
 local buttonWidth = w20 + w2_5
 local buttonHeight = h10
 local buttonGap = w5 + w2_5
 local buttonY = h90
-
--- Fill function for computer based on difficulty
-local current_difficulty = nil
-local player_order = nil
-local playerTurn = nil
-local computerTurn = nil
-local computer_fill = nil 
 
 -- Display objects
 local difficultyText = nil
@@ -68,19 +53,19 @@ local undoButton = nil
 local resultText = nil
 local winStrikethrough = nil
 local replayText = nil
--- OVERLAY FUNCTIONS
 
--- forward declaration so that the function can be called before it is defined
-local computer_fill_hard
-local computer_fill_easy
-
+-- Variables to hold gameInstance data
 local moveHistory = {}
 local gameInstance = nil
 local difficulty = nil
 local player_order = nil
 local result = nil
 local pointer = 0
-local line = nil
+
+local playerTurn = nil
+local computerTurn = nil
+
+-- Import modules required to replay moves
 local game = require("game_logic")
 local play_move_command = require("play_move_logic")
 
@@ -122,7 +107,7 @@ local function make_buttons (group)
             y = h90,
             width = buttonWidth,
             height = buttonHeight,
-            fontSize = 40,
+            fontSize = BTN_TEXT_SIZE,
             font = FONT,
             labelColor = { default={0, 0, 0}, over={0, 0, 0} }
         }
@@ -137,7 +122,7 @@ local function make_buttons (group)
             y = h90,
             width = buttonWidth,
             height = buttonHeight,
-            fontSize = 40,
+            fontSize = BTN_TEXT_SIZE,
             font = FONT,
             labelColor = { default={0, 0, 0}, over={0, 0, 0} }
         }

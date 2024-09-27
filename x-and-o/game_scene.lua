@@ -50,14 +50,14 @@ local TEXT_SIZE = 40
 local BTN_TEXT_SIZE = 16
 
 -- display object constants
-local game_over_y = h10 + h2_5
+local gameOverY = h10 + h2_5
 local buttonWidth = w20 + w2_5
 local buttonHeight = h10
 local buttonGap = w5 + w2_5
 local buttonY = h90
 
 -- Fill function for computer based on difficulty
-local current_difficulty = nil
+local difficulty = nil
 local playerOrder = nil
 local playerTurn = nil
 local computerTurn = nil
@@ -104,10 +104,10 @@ local function display_difficulty()
     difficultyText = nil
 
     local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
-    if current_difficulty == "easy" then
+    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    if difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif current_difficulty == "hard" then
+    elseif difficulty == "hard" then
         difficultyText:setFillColor(1, 0, 0) -- Set text color to red
     end
     difficultyText.anchorX = 0
@@ -115,9 +115,9 @@ local function display_difficulty()
 end
 
 local function change_difficulty(event)
-    current_difficulty = current_difficulty == "hard" and "easy" or "hard"
-    difficultyText.text = "Difficulty: "..current_difficulty:upper()
-    difficultyText:setFillColor(current_difficulty == "easy" and 0 or 1, current_difficulty == "hard" and 0 or 1, 0)
+    difficulty = difficulty == "hard" and "easy" or "hard"
+    difficultyText.text = "Difficulty: "..difficulty:upper()
+    difficultyText:setFillColor(difficulty == "easy" and 0 or 1, difficulty == "hard" and 0 or 1, 0)
 end
 
 local function create_undo_button()
@@ -207,13 +207,13 @@ local function initialise_game (group)
     winningCells = nil
     winDirection = nil
     
-    if current_difficulty == "hard" then
+    if difficulty == "hard" then
         computer_fill = computer_fill_hard
-    elseif current_difficulty == "easy" then
+    elseif difficulty == "easy" then
         computer_fill = computer_fill_easy
     end
 
-    gameInstance = game:new(nil, current_difficulty, playerOrder, group)
+    gameInstance = game:new(nil, difficulty, playerOrder, group)
     
     if playerOrder == "second" then
         computer_fill()
@@ -231,13 +231,13 @@ local function game_over(gameState)
     gameInstance.result = gameState
     local sceneGroup = scene.view
     if gameState == "player_won" then
-        gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
+        gameOverText = d.newText("You Win", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
         gameOverText:setFillColor(0, 1, 0) -- Set text color to green
     elseif gameState == "ai_won" then
-        gameOverText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
+        gameOverText = d.newText("You Lose", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
         gameOverText:setFillColor(1, 0, 0) -- Set text color to red
     elseif gameState == "draw" then
-        gameOverText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
+        gameOverText = d.newText("Draw", d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
         gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
     end
     sceneGroup:insert(gameOverText)
@@ -418,9 +418,9 @@ end
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
 
-function scene:post_difficulty_selection(difficulty)
+function scene:post_difficulty_selection(selected_difficulty)
     -- initial difficulty selection when scene shows
-    current_difficulty = difficulty
+    difficulty = selected_difficulty
     display_difficulty()
     select_order()
 end
