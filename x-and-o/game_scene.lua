@@ -99,7 +99,7 @@ local fill
 
 -- Import modules required for making and display moves 
 -- using command pattern to support undo
-local game = require("game_logic")
+local game = require("game_instance")
 local play_move_command = require("play_move_logic") 
 
 -- Import modules required for computer moves
@@ -127,7 +127,6 @@ function select_order(event)
     }
     composer.showOverlay("select_order_overlay", options)
 end
----- End of overlay scene transitions
 -- -----------------------------------------------------------------------------------
 ---- Display object creation functions
 -- Difficulty text is displayed at all times, and created after initial difficulty selection
@@ -262,7 +261,7 @@ end
 ---- Button event handlers
 
 -- Undo button handler - available during game in progress
--- Undo button uses command pattern functionality in play_move_logic and game_logic
+-- Undo button uses command pattern functionality in play_move_logic and game_instance modules
 function undo_last_player_move ()
     -- Undo move if the last move was made by the computer
     if gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn then
@@ -557,7 +556,7 @@ function scene:show( event )
  
     elseif ( phase == "did" ) then
         -- Code here runs when the scene is entirely on screen
-        
+
         Runtime:addEventListener("touch", fill)
 
         -- Show difficulty selection overlay when scene is initially shown 
