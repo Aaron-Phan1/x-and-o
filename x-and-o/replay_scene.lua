@@ -67,6 +67,7 @@ local buttonObjects = {}
 local undoButton = nil
 local resultText = nil
 local winStrikethrough = nil
+local replayText = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -114,25 +115,31 @@ end
 local function make_buttons (group)
     local forwardButton = widget.newButton(
         {
-            label = "Forward",
+            label = ">",
             onRelease = replay_move,
             shape = "roundedRect",
             x = w80,
-            y = h10,
+            y = h90,
             width = buttonWidth,
-            height = buttonHeight
+            height = buttonHeight,
+            fontSize = 40,
+            font = FONT,
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
         }
     )
     group:insert(forwardButton)
     local backButton = widget.newButton(
         {
-            label = "Back",
+            label = "<",
             onRelease = undo_move,
             shape = "roundedRect",
             x = w20,
-            y = h10,
+            y = h90,
             width = buttonWidth,
-            height = buttonHeight
+            height = buttonHeight,
+            fontSize = 40,
+            font = FONT,
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
         }
     )
     group:insert(backButton)
@@ -143,14 +150,14 @@ local function display_difficulty()
 
     display.remove(difficultyText)
     difficultyText = nil
-
     local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
     if difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif current_difficulty == "hard" then
+    elseif difficulty == "hard" then
         difficultyText:setFillColor(1, 0, 0) -- Set text color to red
     end
+    difficultyText.anchorX = 0
     sceneGroup:insert(difficultyText)
 end
 
@@ -164,6 +171,11 @@ local function initialise_replay(params, group)
     playerTurn = player_order == "first" and X or O
     computerTurn = player_order == "first" and O or X
 
+    -- Create and display the replay text
+    replayText = d.newText("Replay", w2_5, h5, FONT, 10)
+    replayText.anchorX = 0
+    replayText:setFillColor(1, 0.5, 0) -- Set text color to orange
+    group:insert(replayText)
     -- create display objects for game result
     if result == "player_won" then
         resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
@@ -175,7 +187,6 @@ local function initialise_replay(params, group)
         resultText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
         resultText:setFillColor(0, 0, 1) -- Set text color to blue
     end
-
     resultText.isVisible = false
     group:insert(resultText)
 

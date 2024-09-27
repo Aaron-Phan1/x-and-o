@@ -47,8 +47,7 @@ local winningCells = nil
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 40
-local baseFontSize = 48
-local adjustedSize = baseFontSize * display.contentHeight / 480
+local BTN_TEXT_SIZE = 16
 
 -- display object constants
 local game_over_y = h10 + h2_5
@@ -105,12 +104,13 @@ local function display_difficulty()
     difficultyText = nil
 
     local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w20, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    difficultyText = d.newText("Difficulty: "..current_difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
     if current_difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
     elseif current_difficulty == "hard" then
         difficultyText:setFillColor(1, 0, 0) -- Set text color to red
     end
+    difficultyText.anchorX = 0
     sceneGroup:insert(difficultyText)
 end
 
@@ -125,15 +125,18 @@ local function create_undo_button()
     undoButton = widget.newButton(
         {
             label = "Undo",
+            labelColor = { default={0,0,0,1 }},
             onRelease = undo_last_player_move,
             shape = "roundedRect",
             width = buttonWidth,
             height = buttonHeight,
             x = w80,
             y = buttonY,
-            fontSize = 16
+            fontSize = BTN_TEXT_SIZE
         }
     )
+
+    undoButton:setFillColor(0.5, 0.5, 0)
     undoButton:setEnabled(false)
     sceneGroup:insert(undoButton)
 end
@@ -141,14 +144,13 @@ end
 local function enable_undo ()
     undoButton:setEnabled(true)
 
-
-    undoButton:setFillColor(0, 1, 0)
+    undoButton:setFillColor(1, 1, 0)
 end
 
 local function disable_undo ()
     undoButton:setEnabled(false)
 
-    undoButton:setFillColor(0.5, 0.5, 0.5)
+    undoButton:setFillColor(0.5, 0.5, 0)
 end
 
 function undo_last_player_move ()
@@ -229,13 +231,13 @@ local function game_over(gameState)
     gameInstance.result = gameState
     local sceneGroup = scene.view
     if gameState == "player_won" then
-        gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
         gameOverText:setFillColor(0, 1, 0) -- Set text color to green
     elseif gameState == "ai_won" then
-        gameOverText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
         gameOverText:setFillColor(1, 0, 0) -- Set text color to red
     elseif gameState == "draw" then
-        gameOverText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
+        gameOverText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, TEXT_SIZE)
         gameOverText:setFillColor(0, 0, 1) -- Set text color to blue
     end
     sceneGroup:insert(gameOverText)
@@ -281,7 +283,7 @@ local function game_over(gameState)
                 onRelease = buttonConfig.onRelease,
                 x = buttonX,
                 y = buttonY,
-                fontSize = 16
+                fontSize = BTN_TEXT_SIZE
             }
         )
         sceneGroup:insert(button)

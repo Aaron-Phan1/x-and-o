@@ -33,8 +33,8 @@ buttonHeight = h10
 
 -- font constants
 local FONT = "Arial"
-local baseFontSize = 24
-local adjustedSize = baseFontSize * display.contentHeight / 480
+local TEXT_SIZE = 24
+local BTN_TEXT_SIZE = 18
 local selectedButton = nil
 
 -- Save the selected difficulty before hiding the overlay
@@ -59,7 +59,7 @@ function scene:create( event )
     selection_window.strokeWidth = 4
     
     -- Create text for selecting difficulty
-    local selection_text = d.newText("Select Difficulty", d.contentWidth/2, h30 + h5, FONT, adjustedSize)
+    local selection_text = d.newText("Select Difficulty", d.contentWidth/2, h30 + h5, FONT, TEXT_SIZE)
   
     -- Create buttons for selecting difficulty
     local easyButton = widget.newButton(
@@ -67,6 +67,7 @@ function scene:create( event )
             label = "Easy",
             onRelease = handle_button_event,
             -- Properties for a rounded rectangle button
+            labelColor = { default={0,0,0}, over={0,0,0} },
             shape = "roundedRect",
             width = w60,
             height = h10,
@@ -75,7 +76,8 @@ function scene:create( event )
             cornerRadius = 2,
             fillColor = { default={0,1,0,1}, over={0.5,1,0.5,1} },
             strokeColor = { default={0,0.5,0,1}, over={0.3,0.8,0.3,1} },
-            strokeWidth = 4
+            strokeWidth = 4,
+            fontSize = BTN_TEXT_SIZE
         }
     )
     easyButton.difficulty = "easy" -- Add a custom property to the button object
@@ -94,7 +96,8 @@ function scene:create( event )
             cornerRadius = 2,
             fillColor = { default={1,0,0,1}, over={1,0.5,0.5,1} },
             strokeColor = { default={0.5,0,0,1}, over={0.8,0.3,0.3,1} },
-            strokeWidth = 4
+            strokeWidth = 4,
+            fontSize = BTN_TEXT_SIZE
         }
     )
     hardButton.difficulty = "hard"
