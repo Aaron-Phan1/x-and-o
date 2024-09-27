@@ -8,38 +8,11 @@ local widget = require("widget")
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
 
--- content positioning constants
-d = display
-w2_5 = d.contentWidth * .025
-w5 = d.contentWidth * .05
-w10 = d.contentWidth * .1
-w20 = d.contentWidth * .2
-w30 = d.contentWidth * .3
-w40 = d.contentWidth * .4
-w50 = d.contentWidth * .5
-w60 = d.contentWidth * .6
-w70 = d.contentWidth * .7
-w80 = d.contentWidth * .8
-w90 = d.contentWidth * .9
-
-h2_5 = d.contentHeight * .025
-h5 = d.contentHeight * .05
-h10 = d.contentHeight * .1
-h20 = d.contentHeight * .2 
-h30 = d.contentHeight * .3
-h40 = d.contentHeight * .4
-h50 = d.contentHeight * .5
-h60 = d.contentHeight * .6
-h70 = d.contentHeight * .7
-h80 = d.contentHeight * .8
-h90 = d.contentHeight * .9
-
 -- GAME CONSTANTS
 local EMPTY, X, O = 0, "X", "O" -- Cell states
 
 -- FONT CONSTANTS
 local FONT = "Arial"
-local TEXT_SIZE = 40
 local BTN_TEXT_SIZE = 40
 
 -- display object position constants
@@ -64,11 +37,8 @@ local player_order = nil
 local result = nil
 local pointer = 0
 
-local playerTurn = nil
-local computerTurn = nil
-
 -- Import modules required to replay moves
-local game = require("game_logic")
+local game = require("game_instance")
 local play_move_command = require("play_move_logic")
 
 local function new_game()
@@ -163,9 +133,6 @@ local function initialise_replay(params, group)
     winLineInfo = params.winLineInfo
     gameOverTextInfo = params.gameOverTextInfo
     
-    playerTurn = player_order == "first" and X or O
-    computerTurn = player_order == "first" and O or X
-
     -- Create and display the replay text
     replayText = d.newText("Replay", w2_5, h5, FONT, 12)
     replayText.anchorX = 0

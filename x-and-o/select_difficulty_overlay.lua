@@ -7,29 +7,10 @@ local widget = require("widget")
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
- 
-d = display
-w20 = d.contentWidth * .2
-w40 = d.contentWidth * .4
-w60 = d.contentWidth * .6
-w80 = d.contentWidth * .8
-
-h2_5 = d.contentHeight * .025
-h5 = d.contentHeight * .05
-h10 = d.contentHeight * .1
-h20 = d.contentHeight * .2 
-h30 = d.contentHeight * .3
-h40 = d.contentHeight * .4
-h50 = d.contentHeight * .5
-h60 = d.contentHeight * .6
-h70 = d.contentHeight * .7
-h80 = d.contentHeight * .8
-h90 = d.contentHeight * .9
-
 
 -- display object constants
-element_gap = h2_5
-buttonHeight = h10
+local element_gap = h2_5
+local buttonHeight = h10
 
 -- font constants
 local FONT = "Arial"
@@ -80,7 +61,7 @@ function scene:create( event )
             fontSize = BTN_TEXT_SIZE
         }
     )
-    easyButton.difficulty = "easy" -- Add a custom property to the button object
+    easyButton.difficulty = "easy"
 
     local hardButton = widget.newButton(
         {
@@ -141,6 +122,8 @@ function scene:hide( event )
         -- Pass the selected difficulty back to the parent scene
     elseif ( phase == "did" ) then
         -- Code here runs immediately after the scene goes entirely off screen
+
+        -- Pass the selected difficulty back to the parent scene
         parent:post_difficulty_selection(selectedButton)
     end
 end
