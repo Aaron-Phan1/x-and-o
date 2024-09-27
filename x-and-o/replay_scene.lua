@@ -66,6 +66,7 @@ local difficultyText = nil
 local buttonObjects = {}
 local undoButton = nil
 local resultText = nil
+local winStrikethrough = nil
 -- OVERLAY FUNCTIONS
 
 -- forward declaration so that the function can be called before it is defined
@@ -78,25 +79,10 @@ local difficulty = nil
 local player_order = nil
 local result = nil
 local pointer = 0
-
+local line = nil
 local game = require("game_logic")
 local play_move_command = require("play_move_logic")
 
-local function display_result()
-    local sceneGroup = scene.view
-    if result == "player_won" then
-        resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(0, 1, 0) -- Set text color to green
-    elseif result == "ai_won" then
-        resultText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(1, 0, 0) -- Set text color to red
-    elseif result == "draw" then
-        resultText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
-        resultText:setFillColor(0, 0, 1) -- Set text color to blue
-    end
-    sceneGroup:insert(resultText)
-    
-end
 
 local function replay_move()
     if pointer < #moveHistory then
@@ -107,17 +93,16 @@ local function replay_move()
         scene.view:insert(replayInstance.board[command.cell_num][8])
     end
 
-    if pointer == #moveHistory and not resultText then
-        display_result()
+    if pointer == #moveHistory then
+        resultText.isVisible = true
+        if winStrikethrough then winStrikethrough.isVisible = true end
     end
 end
 
 local function undo_move()
-    if resultText then
-        print("alo")
-        print(resultText)
-        display.remove(resultText)
-        resultText = nil
+    if resultText.isVisible then resultText.isVisible = false end
+    if winStrikethrough and winStrikethrough.isVisible then 
+        winStrikethrough.isVisible = false
     end
 
     if pointer > 0 then
@@ -169,14 +154,38 @@ local function display_difficulty()
     sceneGroup:insert(difficultyText)
 end
 
-local function initialise_replay(gameInstance)
-    moveHistory = gameInstance.moveHistory
-    difficulty = gameInstance.difficulty
-    playerOrder = gameInstance.player_order
-    result = gameInstance.result
+local function initialise_replay(params)
+    local sceneGroup = scene.view
+    -- get finished game instance variables from params
+    moveHistory = params.gameInstance.moveHistory
+    difficulty = params.gameInstance.difficulty
+    playerOrder = params.gameInstance.player_order
+    result = params.gameInstance.result
+    winStrikethrough = params.winStrikethrough
     playerTurn = player_order == "first" and X or O
     computerTurn = player_order == "first" and O or X
 
+    -- create display objects for game result
+    if result == "player_won" then
+        resultText = d.newText("You Win", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(0, 1, 0) -- Set text color to green
+    elseif result == "ai_won" then
+        resultText = d.newText("You Lose", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(1, 0, 0) -- Set text color to red
+    elseif result == "draw" then
+        resultText = d.newText("Draw", d.contentCenterX, game_over_y, FONT, 40)
+        resultText:setFillColor(0, 0, 1) -- Set text color to blue
+    end
+
+    resultText.isVisible = false
+    sceneGroup:insert(resultText)
+
+    if winStrikethrough then
+        winStrikethrough.isVisible = false
+        sceneGroup:insert(winStrikethrough)
+    end
+
+    -- create game instance for replay
     replayInstance = game:new(nil, difficulty, player_order)
     replayInstance.result = result
     display_difficulty()
@@ -214,8 +223,9 @@ function scene:create( event )
     sceneGroup:insert(bline)
     sceneGroup:insert(tline)
 
-    initialise_replay(params.gameInstance)
+    initialise_replay(params)
     make_buttons(sceneGroup)
+
 end
  
  

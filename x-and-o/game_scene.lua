@@ -193,7 +193,7 @@ local function watch_replay ()
     local sceneGroup = scene.view
 
     -- go to replay scene
-    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance}})
+    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winStrikethrough = winStrikethrough}})
 end
 
 local function initialise_game ()
