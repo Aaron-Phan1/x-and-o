@@ -34,6 +34,9 @@ h70 = d.contentHeight * .7
 h80 = d.contentHeight * .8
 h90 = d.contentHeight * .9
 
+-- GAME CONSTANTS
+local EMPTY, X, O = 0, "X", "O" -- Cell states
+
 -- FONT CONSTANTS
 local FONT = "Arial"
 local TEXT_SIZE = 20
@@ -158,7 +161,8 @@ local function initialise_replay(params, group)
     difficulty = params.gameInstance.difficulty
     playerOrder = params.gameInstance.player_order
     result = params.gameInstance.result
-    winStrikethrough = params.winStrikethrough
+    winLineInfo = params.winLineInfo
+    
     playerTurn = player_order == "first" and X or O
     computerTurn = player_order == "first" and O or X
 
@@ -192,13 +196,18 @@ local function initialise_replay(params, group)
     resultText.isVisible = false
     group:insert(resultText)
 
-    if winStrikethrough then
+    if winLineInfo then
+        -- Create strikethrough line for winning line
+        winStrikethrough = d.newLine(winLineInfo.x1, winLineInfo.y1, winLineInfo.x2, winLineInfo.y2)
+        winStrikethrough.strokeWidth = winLineInfo.strokeWidth
+        winStrikethrough.alpha = winLineInfo.alpha
+        winStrikethrough:setStrokeColor(winLineInfo.r, winLineInfo.g, winLineInfo.b)
         winStrikethrough.isVisible = false
         group:insert(winStrikethrough)
     end
-
     -- create game instance for replay
     replayInstance = game:new(nil, difficulty, player_order, group)
+    
 end
 
 

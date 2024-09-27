@@ -42,6 +42,9 @@ local EMPTY, X, O = 0, "X", "O" -- Cell states
 local whichTurn = X -- X is starting game
 local gameState = nil
 local winningCells = nil
+local winDirection = nil
+local winningCellsType = nil
+local winLineInfo = nil
 local initial_load = true
 
 
@@ -154,6 +157,47 @@ local function disable_undo ()
     undoButton:setFillColor(0.5, 0.5, 0)
 end
 
+local function drawWinLine ()
+    local sceneGroup = scene.view
+    local x1, y1, x2, y2
+    winLineInfo = {}
+
+    if winDirection == "diagonal" then
+        if winningCells[1] == 1 then
+            x1, y1 = gameInstance.board[1][3], gameInstance.board[1][6]
+            x2, y2 = gameInstance.board[9][5], gameInstance.board[9][4]
+        else
+            x1, y1 = gameInstance.board[3][5], gameInstance.board[3][6]
+            x2, y2 = gameInstance.board[7][3], gameInstance.board[7][4]
+        end
+    elseif winDirection == "horizontal" then
+        y1 = (gameInstance.board[winningCells[1]][4] + gameInstance.board[winningCells[1]][6]) / 2
+        y2 = y1
+        x1, x2 = gameInstance.board[winningCells[1]][3], gameInstance.board[winningCells[3]][5]
+    elseif winDirection == "vertical" then
+        x1 = (gameInstance.board[winningCells[1]][3] + gameInstance.board[winningCells[1]][5]) / 2
+        x2 = x1
+        y1, y2 = gameInstance.board[winningCells[1]][6], gameInstance.board[winningCells[3]][4]
+    end
+
+    winStrikethrough = d.newLine(x1, y1, x2, y2)
+    winStrikethrough.strokeWidth = 5
+    winStrikethrough.alpha = 0.8
+
+    winningCellsType = gameInstance.board[winningCells[1]][7]
+    local r, g, b = winningCellsType == X and 0 or 1, 0, winningCellsType == X and 1 or 0
+
+    winStrikethrough:setStrokeColor(r, g, b)
+
+    sceneGroup:insert(winStrikethrough)
+
+    -- Record line info to recreate in replay scene
+    winLineInfo.x1, winLineInfo.y1, winLineInfo.x2, winLineInfo.y2 = x1, y1, x2, y2
+    winLineInfo.strokeWidth = 5  
+    winLineInfo.alpha = 0.8
+    winLineInfo.r, winLineInfo.g, winLineInfo.b = r, g, b  
+end
+
 function undo_last_player_move ()
     -- Undo moves until the last player move
     while gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn do
@@ -198,7 +242,7 @@ local function watch_replay ()
     local sceneGroup = scene.view
 
     -- go to replay scene
-    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winStrikethrough = winStrikethrough}})
+    composer.gotoScene("replay_scene", {params = {gameInstance = gameInstance, winLineInfo = winLineInfo}})
 end
 
 local function initialise_game (group)
@@ -245,24 +289,7 @@ local function game_over(gameState)
     
     -- Draw line through winning cells
     if winningCells then
-        if winDirection == "diagonal" then
-            if winningCells[1] == 1 then
-                winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][3], gameInstance.board[winningCells[1]][6], gameInstance.board[winningCells[3]][5], gameInstance.board[winningCells[3]][4])
-            elseif winningCells[1] == 3 then
-                winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][5], gameInstance.board[winningCells[1]][6], gameInstance.board[winningCells[3]][3], gameInstance.board[winningCells[3]][4])
-            end
-        elseif winDirection == "horizontal" then
-            local halfwayY = (gameInstance.board[winningCells[1]][4] + gameInstance.board[winningCells[1]][6]) / 2
-            winStrikethrough = d.newLine(gameInstance.board[winningCells[1]][3], halfwayY, gameInstance.board[winningCells[3]][5], halfwayY)
-        elseif winDirection == "vertical" then
-            local halfwayX = (gameInstance.board[winningCells[1]][3] + gameInstance.board[winningCells[1]][5]) / 2
-            winStrikethrough = d.newLine(halfwayX, gameInstance.board[winningCells[1]][6], halfwayX, gameInstance.board[winningCells[3]][4])
-        end
-        winStrikethrough.strokeWidth = 5
-        winStrikethrough.alpha = 0.8
-        local winningCellsType = gameInstance.board[winningCells[1]][7]
-        winStrikethrough:setStrokeColor(winningCellsType == X and 0 or 1, 0, winningCellsType == X and 1 or 0)
-        sceneGroup:insert(winStrikethrough)
+        drawWinLine()
     end
 
 
