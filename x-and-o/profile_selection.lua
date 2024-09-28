@@ -25,8 +25,8 @@ if not profiles then
     for i = 1, 3 do
         profiles[i] = {
             name = "Player " .. i,
-            hard = { wins = 0, losses = 0, draws = 0 },
-            easy = { wins = 0, losses = 0, draws = 0 },
+            hard = { win = 0, loss = 0, draw = 0 },
+            easy = { win = 0, loss = 0, draw = 0 },
             active = false
         }
     end
@@ -52,12 +52,12 @@ end
 local function clear_score(event)
     local profileNum = event.target.profileNum
     local mode = event.target.mode
-    profiles[profileNum][mode] = { wins = 0, losses = 0, draws = 0 }
+    profiles[profileNum][mode] = { win = 0, loss = 0, draw = 0 }
     M.save_table(profiles, "profiles.json")
     if mode == "hard" then
-        container_objs[profileNum].hardModeText.text = "Hard Mode\nWins: 0\nLosses: 0\nDraws: 0"
+        container_objs[profileNum].hardModeText.text = "Hard Mode\nWin: 0\nLoss: 0\nDraw: 0"
     else
-        container_objs[profileNum].easyModeText.text = "Easy Mode\nWins: 0\nLosses: 0\nDraws: 0"
+        container_objs[profileNum].easyModeText.text = "Easy Mode\nWin: 0\nLoss: 0\nDraw: 0"
     end
 end
 
@@ -65,8 +65,8 @@ local function create_profile(event)
     local profileNum = event.target.profileNum
     profiles[profileNum] = {
         name = "Player " .. profileNum,
-        hard = { wins = 0, losses = 0, draws = 0 },
-        easy = { wins = 0, losses = 0, draws = 0 },
+        hard = { win = 0, loss = 0, draw = 0 },
+        easy = { win = 0, loss = 0, draw = 0 },
         active = true
     }
     M.save_table(profiles, "profiles.json")
@@ -76,8 +76,8 @@ local function delete_profile(event)
     local profileNum = event.target.profileNum
     profiles[profileNum] = {
         name = "Player " .. profileNum,
-        hard = { wins = 0, losses = 0, draws = 0 },
-        easy = { wins = 0, losses = 0, draws = 0 },
+        hard = { win = 0, loss = 0, draw = 0 },
+        easy = { win = 0, loss = 0, draw = 0 },
         active = false
     }
     M.save_table(profiles, "profiles.json")
@@ -144,7 +144,7 @@ local function make_profile_objects (index , container, profile)
     container_objs[i].profileText = profileText
 
     local easyModeText = display.newText({
-        text = "Easy Mode\nWins: " .. profile.easy.wins .. "\nLosses: " .. profile.easy.losses .. "\nDraws: " .. profile.easy.draws,
+        text = "Easy Mode\nWin: " .. profile.easy.win .. "\nLoss: " .. profile.easy.loss .. "\nDraw: " .. profile.easy.draw,
         x = 0,
         y = 0,
         width = containerWidth - w10,
@@ -157,7 +157,7 @@ local function make_profile_objects (index , container, profile)
     container_objs[i].easyModeText = easyModeText
 
     local hardModeText = display.newText({
-        text = "Hard Mode\nWins: " .. profile.hard.wins .. "\nLosses: " .. profile.hard.losses .. "\nDraws: " .. profile.hard.draws,
+        text = "Hard Mode\nWin: " .. profile.hard.win .. "\nLoss: " .. profile.hard.loss .. "\nDraw: " .. profile.hard.draw,
         x = w20 + w5,
         y = 0,
         width = containerWidth - w10,
@@ -184,6 +184,7 @@ local function make_profile_objects (index , container, profile)
         fontSize = 14,
         onRelease = play_game
     })
+    playButton.profileNum = i
     container:insert(playButton)
     container_objs[i].playButton = playButton
 

@@ -4,7 +4,7 @@ local scene = composer.newScene()
 
 local widget = require("widget")
 
-local json = require("json")
+local M = require("M")
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
@@ -76,6 +76,9 @@ local undoButton = nil
 local gameOverText = nil
 local winStrikethrough = nil
 
+-- Profile variables
+local profileNum = nil
+
 -- forward declaration so that function order doesn't matter
 local computer_fill_hard
 local computer_fill_easy
@@ -138,7 +141,7 @@ function display_difficulty()
     difficultyText = nil
 
     local sceneGroup = scene.view
-    difficultyText = d.newText("Difficulty: "..difficulty:upper(), w10 - (w2_5/2), buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, 12)
     if difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
     elseif difficulty == "hard" then
@@ -368,6 +371,7 @@ end
 
 function game_over(gameState)
     -- Remove display objects from previous game state
+    record_result(gameState)
     local sceneGroup = scene.view
     display.remove(undoButton)
     undoButton = nil
@@ -486,6 +490,29 @@ function computer_fill_easy ()
 end
 ---- End of game logic functions
 -- -----------------------------------------------------------------------------------
+---- Data persistence functions
+-- Save game result to file
+
+function record_result (game_result)
+    local profiles = M.load_table("profiles.json")
+
+    -- Update profile's respective record
+    if profiles and profileNum then
+        local profile = profiles[profileNum]
+        if profile then
+            local diff = gameInstance.difficulty
+            if game_result == "player_won" then
+                profile[diff].win = profile[diff].win + 1
+            elseif game_result == "ai_won" then
+                profile[diff].loss = profile[diff].loss + 1
+            elseif game_result == "draw" then
+                profile[diff].draw = profile[diff].draw + 1
+            end
+            M.save_table(profiles, "profiles.json")
+        end
+    end
+end
+-- -----------------------------------------------------------------------------------
 -- Runtime touch event handler
 function fill (event)
     if event.phase == "began" and gameState == "in_progress" then
@@ -524,6 +551,10 @@ end
 function scene:create( event )
  
     local sceneGroup = self.view
+    local params = event.params
+    profileNum = params.profileNum
+    print(profileNum)
+
     ----DRAW LINES FOR BOARD
     local lline = d.newLine(w40, h20, w40, h80)
     lline.strokeWidth = 5
