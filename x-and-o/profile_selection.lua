@@ -12,6 +12,9 @@ local containerWidth = w80
 
 local containers = {}
 local container_objs = {{},{},{}}
+
+local command = nil
+local command_event = nil
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
@@ -28,10 +31,22 @@ if not profiles then
         }
     end
 end
-profiles[1].hard = { wins = 100, losses = 0, draws = 0 }
+
 local function reload_scene()
     composer.removeScene("profile_selection")
     composer.gotoScene("profile_selection")
+end
+
+local function play_game(event)
+    composer.gotoScene("game_scene", {params = {profileNum = event.target.profileNum}})
+end
+
+local function sensitive_command (event)
+
+    command = event.target.com
+    command_event = event
+    print(event.target.type, "hi")
+    composer.showOverlay("sensitive_command_scene", {isModal = true, effect = "fade", time = 100, params = {type = event.target.type}})
 end
 
 local function clear_score(event)
@@ -167,9 +182,7 @@ local function make_profile_objects (index , container, profile)
         fillColor = { default={0.2, 0.6, 0.8}, over={0.3, 0.7, 0.9} },
         labelColor = { default={1, 1, 1}, over={1, 1, 1} },
         fontSize = 14,
-        onRelease = function()
-            print("Play button tapped for " .. profile.name)
-        end
+        onRelease = play_game
     })
     container:insert(playButton)
     container_objs[i].playButton = playButton
@@ -186,8 +199,10 @@ local function make_profile_objects (index , container, profile)
         fillColor = { default={0.6, 0, 0}, over={0.8, 0, 0} },
         labelColor = { default={0.8,0.8,0.8}, over={0.8, 0.8, 0.8} },
         fontSize = 10,
-        onRelease = delete_profile
+        onRelease = sensitive_command
     })
+    deleteButton.com = delete_profile
+    deleteButton.type = "Delete"
     deleteButton.profileNum = i
     container:insert(deleteButton)
     container_objs[i].deleteButton = deleteButton
@@ -205,8 +220,11 @@ local function make_profile_objects (index , container, profile)
         fillColor = { default={0.6, 0, 0}, over={0.8, 0, 0} },
         labelColor = { default={0.8,0.8,0.8}, over={0.8, 0.8, 0.8} },
         fontSize = 10,
-        onRelease = clear_score,
+        onRelease = sensitive_command,
+
     })
+    clearEasyBtn.com = clear_score
+    clearEasyBtn.type = "Clear"
     clearEasyBtn.mode = "easy"
     clearEasyBtn.anchorX = 0
     clearEasyBtn.profileNum = i
@@ -226,8 +244,10 @@ local function make_profile_objects (index , container, profile)
         fillColor = { default={0.6, 0, 0}, over={0.8, 0, 0} },
         labelColor = { default={0.8,0.8,0.8}, over={0.8, 0.8, 0.8} },
         fontSize = 10,
-        onRelease = clear_score,
+        onRelease = sensitive_command,
     })
+    clearHardBtn.com = clear_score
+    clearHardBtn.type = "Clear"
     clearHardBtn.mode = "hard"
     clearHardBtn.anchorX = 0
     clearHardBtn.profileNum = i
@@ -257,7 +277,7 @@ end
 
 
 
-local function create_container(group)
+local function create_containers(group)
     for i = 1, 3 do
         local container = display.newContainer(containerWidth, containerHeight)
         container:translate(display.contentCenterX, h10 + h2_5 + (i - 1) * (containerGap + containerHeight) + containerGap + (containerHeight / 2))
@@ -326,13 +346,21 @@ end
 -- Scene event functions
 -- -----------------------------------------------------------------------------------
  
+function scene:post_sensitive_overlay(choice)
+    if choice == "YES" then
+        command(command_event)
+    end
+    command = nil
+    command_event = nil
+end
 -- create()
 function scene:create( event )
  
     local sceneGroup = self.view
     -- Code here runs when the scene is first created but has not yet appeared on screen
-    create_container(sceneGroup)
- 
+    create_containers(sceneGroup)
+    local header = d.newText("Profile Selection", display.contentCenterX, h10, native.systemFont, 30)
+    sceneGroup:insert(header)
 end
  
  
