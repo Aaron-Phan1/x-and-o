@@ -3,6 +3,8 @@ local composer = require( "composer" )
 local scene = composer.newScene()
 
 local widget = require("widget")
+
+local json = require("json")
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
