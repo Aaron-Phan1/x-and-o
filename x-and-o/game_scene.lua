@@ -119,8 +119,8 @@ end
 
 -- -----------------------------------------------------------------------------------
 ---- Display object creation functions
--- Difficulty text is displayed at all times, and created after initial difficulty selection
-function display_profile (group)
+-- Display profile name top left of screen
+function display_profile_name (group)
     local profiles = M.load_table("profiles.json")
     local profile = profiles[profileNum]
     profileText = d.newText(profile.name, w2_5, h5 + h2_5/2, FONT, 16)
@@ -129,6 +129,7 @@ function display_profile (group)
     group:insert(profileText)
 end
 
+-- Change profile button to go back to profile selection - beneath profile name
 function change_profile_btn (group)
     local changeProfileBtn = widget.newButton(
         {
@@ -153,6 +154,7 @@ function change_profile_btn (group)
     group:insert(changeProfileBtn)
 end
 
+-- Difficulty text bottom left of screen
 function display_difficulty(group)
     difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
     if difficulty == "easy" then
@@ -164,7 +166,7 @@ function display_difficulty(group)
     group:insert(difficultyText)
 end
 
--- Score text is displayed at all times, and created after initial difficulty selection
+-- The score for selected difficulty - appears to the right of difficulty text
 function display_score (group)
     local profiles = M.load_table("profiles.json")
     local profile = profiles[profileNum]
@@ -175,9 +177,11 @@ function display_score (group)
         draw = {0, 0, 1} -- Blue for draws
     }
 
+    -- To aid in positioning score text objects to the right of the difficulty text
     local previousHardText = difficultyText
     local previousEasyText = difficultyText
 
+    -- Create text objects for each score type - W: L: D:
     for i, textType in ipairs(textTypes) do
         local hardText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.hard[textType], previousHardText.x + previousHardText.width + w2_5, difficultyText.y, FONT, SCORE_TEXT_SIZE)
         hardText:setFillColor(unpack(colours[textType]))
@@ -195,7 +199,7 @@ function display_score (group)
         table.insert(easyTextObjects, easyText)
         previousEasyText = easyText
     end
-
+    -- Display the score for the selected difficulty
     if difficulty == "hard" then
         for _, textObject in ipairs(hardTextObjects) do
             textObject.isVisible = true
@@ -226,7 +230,7 @@ function create_undo_button()
             fontSize = BTN_TEXT_SIZE
         }
     )
-
+    -- Colour is darker when button is disabled
     undoButton:setFillColor(0.5, 0.5, 0)
     undoButton:setEnabled(false)
     sceneGroup:insert(undoButton)
@@ -237,6 +241,7 @@ function drawWinLine (group)
     local x1, y1, x2, y2
     winLineInfo = {}
 
+    -- Calculate line coordinates based on winning cells and direction
     if winDirection == "diagonal" then
         if winningCells[1] == 1 then
             x1, y1 = gameInstance.board[1][3], gameInstance.board[1][6]
@@ -259,6 +264,7 @@ function drawWinLine (group)
     winStrikethrough.strokeWidth = 5
     winStrikethrough.alpha = 0.8
 
+    -- Set line colour based on X or O winning
     local winningCellsType = gameInstance.board[winningCells[1]][7]
     local r, g, b = winningCellsType == X and 0 or 1, 0, winningCellsType == X and 1 or 0
 
@@ -304,7 +310,7 @@ function display_game_over_objects(group)
 
     -- Display game over text
     local textOptions = {
-        player_won = {text = "You Win", colour = {0, 1, 0}, y},
+        player_won = {text = "You Win", colour = {0, 1, 0}},
         ai_won = {text = "You Lose", colour = {1, 0, 0}},
         draw = {text = "Draw", colour = {0, 0, 1}}
     }
@@ -324,8 +330,20 @@ end
 -- -----------------------------------------------------------------------------------
 ---- Button event handlers
 
+-- Change profile button handler - available at all times in game scene
+function change_profile(event)
+    local options = {
+        effect = "fade",
+        time = 100,
+        params = {previousId = profileId}
+    }
+    composer.removeScene("profile_selection")
+    composer.gotoScene("profile_selection", options)
+end
+
+
 -- Undo button handler - available during game in progress
--- Undo button uses command pattern functionality in play_move_logic and game_instance modules
+-- Uses command pattern functionality in play_move_logic and game_instance modules
 function undo_last_player_move ()
     -- Undo move if the last move was made by the computer
     if gameInstance.moveHistory[#gameInstance.moveHistory]:get_curr_turn() ~= playerTurn then
@@ -390,37 +408,33 @@ end
 -- Watch replay button handler - available after game over
 function watch_replay ()
     local sceneGroup = scene.view
-
-    -- Remove replay scene of previous game if it exists
+    local options = {
+        effect = "fade",
+        time = 100,
+        params = {
+            -- Pass gameInstance data to replay scene
+            -- Pass winLineInfo and gameOverTextInfo to recreate display objects in replay scene
+            gameInstance = gameInstance, 
+            winLineInfo = winLineInfo, 
+            gameOverTextInfo = gameOverTextInfo
+        }
+    }
+    -- Remove replay scene of previous game
     if renew_replay then 
         renew_replay = false
         composer.removeScene("replay_scene")
     end
 
-    composer.gotoScene("replay_scene", {
-        -- Pass gameInstance data to replay scene
-        -- winLineInfo and gameOverTextInfo are used to recreate display objects
-        params = {
-            gameInstance = gameInstance, 
-            winLineInfo = winLineInfo, 
-            gameOverTextInfo = gameOverTextInfo}})
-end
-
-function change_profile(event)
-    local options = {
-        effect = "fade",
-        time = 100,
-        params = {previousId = profileId}
-    }
-    composer.removeScene("profile_selection")
-    composer.gotoScene("profile_selection", options)
+    composer.gotoScene("replay_scene", options)
 end
 
 ---- End of button event handlers
 -- -----------------------------------------------------------------------------------
 ---- Game State functions
-
+-- Initialise game state variables and game board
+-- Called after order selection (go first or second)
 function initialise_game (group)
+    -- Reset game state variables
     taps = 0
     whichTurn = X
     gameState = "in_progress"
@@ -430,7 +444,6 @@ function initialise_game (group)
     gameOverTextInfo = {}
     renew_replay = true
 
-    
     if difficulty == "hard" then
         computer_fill = computer_fill_hard
     elseif difficulty == "easy" then
@@ -439,6 +452,7 @@ function initialise_game (group)
 
     gameInstance = game:new(nil, difficulty, group)
     
+    -- playerTurn is set in select_order
     if playerTurn == O then
         computer_fill()
     end 
@@ -447,29 +461,7 @@ function initialise_game (group)
 
 end
 
-function game_over(gameState)
-    -- Remove display objects from previous game state
-    record_result(gameState, gameInstance.difficulty)
-    -- Update profile display objects
-    get_latest_profile_data()
-
-    display.remove(undoButton)
-    undoButton = nil
-
-    -- Bind the result to the game instance object
-    gameInstance.result = gameState
-    
-    local sceneGroup = scene.view
-    -- Draw line through winning cells
-    if winningCells then
-        drawWinLine(sceneGroup)
-    end
-
-    -- Display game over text and change difficulty, play again, and watch replay buttons
-    display_game_over_objects(sceneGroup, gameState)
-end
-
----Check for win/draw
+---Check for win/draw - called after each move
 function check_game_state (game_board, difficulty, curr_turn, taps)
     -- Check for horizontal, vertical, and diagonal wins
     local win = nil
@@ -492,6 +484,8 @@ function check_game_state (game_board, difficulty, curr_turn, taps)
            game_board[combination[2]][7] == curr_turn and
            game_board[combination[3]][7] == curr_turn then
             win = true
+            
+            -- Record winning cells and direction for drawing line through winning cells
             winningCells = combination
             winDirection = combination.direction
             break
@@ -508,7 +502,7 @@ function check_game_state (game_board, difficulty, curr_turn, taps)
         end
         game_over(gameState)
     end
-
+    -- taps == 9 means all cells are filled
     if taps == 9 and win == nil then
         print("It's a draw")
         gameState = "draw"
@@ -516,13 +510,40 @@ function check_game_state (game_board, difficulty, curr_turn, taps)
     end
 end
 
+-- Game over function - called when game is won or drawn
+function game_over(gameState)
+    -- Update profile record (win/loss/draw) with game result
+    record_result(gameState, gameInstance.difficulty)
+
+    -- Update profile display objects with latest score
+    get_latest_profile_data()
+
+    -- Remove display object from previous game state
+    display.remove(undoButton)
+    undoButton = nil
+
+    -- Bind the game result to the game instance object
+    gameInstance.result = gameState
+    
+    local sceneGroup = scene.view
+    -- Draw line through winning cells
+    if winningCells then
+        drawWinLine(sceneGroup)
+    end
+
+    -- Display game over text and change difficulty, play again, and watch replay buttons
+    display_game_over_objects(sceneGroup, gameState)
+end
+
 ---- End of game state functions
 -- -----------------------------------------------------------------------------------
 ---- Game Logic functions
 -- Used to play moves for player and computer
 function play_move (cell_num, player_type)
-
+    -- Command pattern to support undo
     gameInstance:execute_command(play_move_command:new({cell_num = cell_num, curr_turn = whichTurn}))
+
+    -- Enable undo button after player's move
     if player_type == "player" then
         enable_undo()
     end
@@ -539,8 +560,6 @@ function play_move (cell_num, player_type)
 
     -- Switch turns after checking game state so that the winner is called correctly in check_game_state
     whichTurn = whichTurn == X and O or X
-
-
 end
 
 -- Enable undo button after player's move
@@ -665,7 +684,6 @@ function scene:post_difficulty_selection(selected_difficulty)
     local sceneGroup = scene.view
     -- initial difficulty selection when scene is created
     difficulty = selected_difficulty
-    display_profile(sceneGroup)
     display_difficulty(sceneGroup)
     display_score(sceneGroup)
     select_order()
@@ -682,6 +700,7 @@ end
 function scene:create( event )
     local sceneGroup = self.view
     local params = event.params
+    -- Set profile number and id from parameters passed from profile selection scene
     profileNum = params.profileNum
     profileId = params.profileId
 
@@ -703,7 +722,8 @@ function scene:create( event )
     sceneGroup:insert(bline)
     sceneGroup:insert(tline)
 
-    display_profile(sceneGroup)
+    -- Display profile name and change profile button
+    display_profile_name (sceneGroup)
     change_profile_btn(sceneGroup)
     -- Code here runs when the scene is first created but has not yet appeared on screen
  
@@ -729,6 +749,8 @@ function scene:show( event )
             select_difficulty()
             initial_load = false
         else
+            -- Update profile display objects with latest data
+            -- in the case of returning to the game scene after clearing scores
             get_latest_profile_data()
         end
     end
@@ -755,8 +777,9 @@ end
 function scene:destroy( event )
  
     local sceneGroup = self.view
-    Runtime:removeEventListener("touch", fill)
     -- Code here runs prior to the removal of scene's view
+
+    Runtime:removeEventListener("touch", fill)
  
 end
  
