@@ -9,34 +9,6 @@ local M = require("M")
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
 -- -----------------------------------------------------------------------------------
-d = display
-w2_5 = d.contentWidth * .025
-w5 = d.contentWidth * .05
-w10 = d.contentWidth * .1
-w20 = d.contentWidth * .2
-w30 = d.contentWidth * .3
-w40 = d.contentWidth * .4
-w50 = d.contentWidth * .5
-w60 = d.contentWidth * .6
-w70 = d.contentWidth * .7
-w80 = d.contentWidth * .8
-w90 = d.contentWidth * .9
-
-h2_5 = d.contentHeight * .025
-h5 = d.contentHeight * .05
-h10 = d.contentHeight * .1
-h20 = d.contentHeight * .2 
-h30 = d.contentHeight * .3
-h40 = d.contentHeight * .4
-h50 = d.contentHeight * .5
-h60 = d.contentHeight * .6
-h70 = d.contentHeight * .7
-h80 = d.contentHeight * .8
-h90 = d.contentHeight * .9
-
---PLACE BOARD COMPARTMENT DIMENSIONS IN TABLE
-
-
 
 -- GAME CONSTANTS
 local taps = 0 -- track moves done
@@ -53,7 +25,7 @@ local playerTurn = nil
 local difficulty = nil
 local computer_fill = nil 
 
--- Variables to handle transitions between replay and game scene
+-- Variables to handle transitions between game scene and replay, and game scene and profile selection
 local initial_load = true
 local renew_replay = false
 
@@ -77,8 +49,10 @@ local undoButton = nil
 local gameOverText = nil
 local winStrikethrough = nil
 
--- Profile variables
+-- Profile display objects
+local profileText = nil
 local profileNum = nil
+local profileId = nil
 local easyTextObjects = {}
 local hardTextObjects = {}
 
@@ -104,8 +78,12 @@ local play_move
 local computer_fill_hard
 local computer_fill_easy
 local record_result
-local update_score_display
 local display_score
+local display_profile
+local change_profile_btn
+local change_profile
+local recalculate_score_pos
+local get_latest_profile_data
 local fill
 
 -- Import modules required for making and display moves 
@@ -138,9 +116,43 @@ function select_order(event)
     }
     composer.showOverlay("select_order_overlay", options)
 end
+
 -- -----------------------------------------------------------------------------------
 ---- Display object creation functions
 -- Difficulty text is displayed at all times, and created after initial difficulty selection
+function display_profile (group)
+    local profiles = M.load_table("profiles.json")
+    local profile = profiles[profileNum]
+    profileText = d.newText(profile.name, w2_5, h5 + h2_5/2, FONT, 16)
+    profileText:setFillColor(0.8, 0.5, 0.3)
+    profileText.anchorX = 0
+    group:insert(profileText)
+end
+
+function change_profile_btn (group)
+    local changeProfileBtn = widget.newButton(
+        {
+            label = "Change",
+            labelColor = { default={0.8, 0.8, 0.8}, over={1, 1, 1} },
+            onRelease = change_profile,
+            shape = "roundedRect",
+            width = w10 + w2_5,
+            height = h2_5 + h2_5/2,
+            x = w2_5,
+            y = profileText.y + profileText.height + h2_5/3,
+            strokeWidth = 2,
+            strokeColor = {default = {0.3,0.15, 0.05}, over = {0.5, 0.25, 0.1}},
+            fillColor = {default = {0.6, 0.3, 0.1}, over = {0.8, 0.4, 0.2}},
+            fontSize = 9,
+            onRelease = change_profile
+        }
+    )
+    changeProfileBtn.anchorX = 0
+    
+
+    group:insert(changeProfileBtn)
+end
+
 function display_difficulty(group)
     difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
     if difficulty == "easy" then
@@ -394,6 +406,16 @@ function watch_replay ()
             gameOverTextInfo = gameOverTextInfo}})
 end
 
+function change_profile(event)
+    local options = {
+        effect = "fade",
+        time = 100,
+        params = {previousId = profileId}
+    }
+    composer.removeScene("profile_selection")
+    composer.gotoScene("profile_selection", options)
+end
+
 ---- End of button event handlers
 -- -----------------------------------------------------------------------------------
 ---- Game State functions
@@ -428,7 +450,8 @@ end
 function game_over(gameState)
     -- Remove display objects from previous game state
     record_result(gameState, gameInstance.difficulty)
-    update_score_display(gameState, gameInstance.difficulty)
+    -- Update profile display objects
+    get_latest_profile_data()
 
     display.remove(undoButton)
     undoButton = nil
@@ -493,36 +516,6 @@ function check_game_state (game_board, difficulty, curr_turn, taps)
     end
 end
 
--- Update score display for respective difficulty after game over
-function update_score_display(gameState, gameDifficulty)
-    local result = gameState
-    local diff = gameDifficulty
-    local winText, lossText, drawText
-    if diff == "easy" then
-        winText, lossText, drawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
-    elseif diff == "hard" then
-        winText, lossText, drawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
-    end
-
-    -- Update score text display based on game result
-    if result == "player_won" then
-        winText.text = "W: " .. (tonumber(winText.text:match("%d+")) + 1)
-    elseif result == "ai_won" then
-        lossText.text = "L: " .. (tonumber(lossText.text:match("%d+")) + 1)
-    elseif result == "draw" then
-        drawText.text = "D: " .. (tonumber(drawText.text:match("%d+")) + 1)
-    end
-
-    -- Recalculate positions
-    winText.x = difficultyText.x + difficultyText.width + w2_5
-    winText.y = difficultyText.y
-
-    lossText.x = winText.x + winText.width + w2_5
-    lossText.y = difficultyText.y
-
-    drawText.x = lossText.x + lossText.width + w2_5
-    drawText.y = difficultyText.y
-end
 ---- End of game state functions
 -- -----------------------------------------------------------------------------------
 ---- Game Logic functions
@@ -601,6 +594,53 @@ function record_result (gameState, gameDifficulty)
     end
 end
 -- -----------------------------------------------------------------------------------
+-- Profile display update functions
+-- Recalculate positions of score text objects
+function recalculate_score_pos ()
+    -- Recalculate positions
+    local hardWinText, hardLossText, hardDrawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
+    local easyWinText, easyLossText, easyDrawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
+
+    hardWinText.x = difficultyText.x + difficultyText.width + w2_5 -- Align with difficulty text
+    hardWinText.y = difficultyText.y
+
+    hardLossText.x = hardWinText.x + hardWinText.width + w2_5
+    hardLossText.y = difficultyText.y
+
+    hardDrawText.x = hardLossText.x + hardLossText.width + w2_5
+    hardDrawText.y = difficultyText.y
+
+    easyWinText.x = difficultyText.x + difficultyText.width + w2_5
+    easyWinText.y = difficultyText.y
+
+    easyLossText.x = easyWinText.x + easyWinText.width + w2_5
+    easyLossText.y = difficultyText.y
+
+    easyDrawText.x = easyLossText.x + easyLossText.width + w2_5
+    easyDrawText.y = difficultyText.y
+end
+
+-- Update profile display objects with latest data
+function get_latest_profile_data ()
+    local profiles = M.load_table("profiles.json")
+    local profile = profiles[profileNum]
+
+    local hardWinText, hardLossText, hardDrawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
+    local easyWinText, easyLossText, easyDrawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
+
+    hardWinText.text = "W: " .. profile["hard"].win
+    hardLossText.text = "L: " .. profile["hard"].loss
+    hardDrawText.text = "D: " .. profile["hard"].draw
+    easyWinText.text = "W: " .. profile["easy"].win
+    easyLossText.text = "L: " .. profile["easy"].loss
+    easyDrawText.text = "D: " .. profile["easy"].draw
+
+    profileText.text = profile.name
+
+    recalculate_score_pos()
+
+end
+-- -----------------------------------------------------------------------------------
 -- Runtime touch event handler
 function fill (event)
     if event.phase == "began" and gameState == "in_progress" then
@@ -623,8 +663,9 @@ end
 -- Handle parameter passed from difficulty selection overlay
 function scene:post_difficulty_selection(selected_difficulty)
     local sceneGroup = scene.view
-    -- initial difficulty selection when scene shows
+    -- initial difficulty selection when scene is created
     difficulty = selected_difficulty
+    display_profile(sceneGroup)
     display_difficulty(sceneGroup)
     display_score(sceneGroup)
     select_order()
@@ -636,12 +677,13 @@ function scene:post_order_selection(order)
     playerTurn = order == "first" and X or O 
     initialise_game(sceneGroup)
 end
+
 -- create()
 function scene:create( event )
- 
     local sceneGroup = self.view
     local params = event.params
     profileNum = params.profileNum
+    profileId = params.profileId
 
     ----DRAW LINES FOR BOARD
     local lline = d.newLine(w40, h20, w40, h80)
@@ -661,6 +703,8 @@ function scene:create( event )
     sceneGroup:insert(bline)
     sceneGroup:insert(tline)
 
+    display_profile(sceneGroup)
+    change_profile_btn(sceneGroup)
     -- Code here runs when the scene is first created but has not yet appeared on screen
  
 end
@@ -680,10 +724,12 @@ function scene:show( event )
 
         Runtime:addEventListener("touch", fill)
 
-        -- Show difficulty selection overlay when scene is initially shown 
+        -- Show difficulty selection overlay when scene is initially created and shown 
         if initial_load then
             select_difficulty()
             initial_load = false
+        else
+            get_latest_profile_data()
         end
     end
 end
