@@ -15,6 +15,8 @@ local container_objs = {{},{},{}}
 
 local command = nil
 local command_event = nil
+
+local prevProfile = nil
 -- -----------------------------------------------------------------------------------
 -- Code outside of the scene event functions below will only be executed ONCE unless
 -- the scene is removed entirely (not recycled) via "composer.removeScene()"
@@ -22,14 +24,6 @@ local command_event = nil
 local profiles = M.load_table("profiles.json")
 if not profiles then 
     profiles = {}
-    for i = 1, 3 do
-        profiles[i] = {
-            name = "Player " .. i,
-            hard = { win = 0, loss = 0, draw = 0 },
-            easy = { win = 0, loss = 0, draw = 0 },
-            active = false
-        }
-    end
 end
 
 local function reload_scene()
@@ -38,14 +32,34 @@ local function reload_scene()
 end
 
 local function play_game(event)
-    composer.gotoScene("game_scene", {params = {profileNum = event.target.profileNum}})
+    local options = {
+        isModal = true,
+        effect = "fade",
+        time = 100,
+        params = {
+            profileNum = event.target.profileNum,
+            profileId = profiles[event.target.profileNum].id
+        }
+    }
+    -- If the profile has changed, remove the game scene
+    if profiles[event.target.profileNum].id ~= prevId then
+        composer.removeScene("game_scene")
+    end
+    composer.gotoScene("game_scene", options)
 end
 
 local function sensitive_command (event)
 
     command = event.target.com
     command_event = event
-    composer.showOverlay("sensitive_command_scene", {isModal = true, effect = "fade", time = 100, params = {type = event.target.type}})
+    local options = {
+        isModal = true,
+        effect = "fade",
+        time = 100,
+        params = {type = event.target.type or event.target:getLabel()} -- "Clear" or "Delete"
+    }
+
+    composer.showOverlay("sensitive_command_scene", options)
 end
 
 local function clear_score(event)
@@ -66,19 +80,14 @@ local function create_profile(event)
         name = "Player " .. profileNum,
         hard = { win = 0, loss = 0, draw = 0 },
         easy = { win = 0, loss = 0, draw = 0 },
-        active = true
+        id = tostring(math.random(1000000, 9999999))
     }
     M.save_table(profiles, "profiles.json")
     reload_scene()
 end
 local function delete_profile(event)
     local profileNum = event.target.profileNum
-    profiles[profileNum] = {
-        name = "Player " .. profileNum,
-        hard = { win = 0, loss = 0, draw = 0 },
-        easy = { win = 0, loss = 0, draw = 0 },
-        active = false
-    }
+    profiles[profileNum] = nil
     M.save_table(profiles, "profiles.json")
     reload_scene()
 end
@@ -125,10 +134,10 @@ local function edit_profile_name(event)
 end
 
 
-local function make_profile_objects (index , container, profile)
-    local i = index
+local function make_profile_objects (profileNum , container, profileTable)
+    local i = profileNum
     local container = container
-    local profile = profile
+    local profile = profileTable
 
     local profileText = display.newText({
         text = profile.name,
@@ -139,7 +148,6 @@ local function make_profile_objects (index , container, profile)
     })
     profileText.anchorX = 0
     profileText:setFillColor(1, 1, 1)
-    container:insert(profileText)
     container_objs[i].profileText = profileText
 
     local easyModeText = display.newText({
@@ -152,7 +160,6 @@ local function make_profile_objects (index , container, profile)
         align = "left"
     })
     easyModeText:setFillColor(1, 1, 1)
-    container:insert(easyModeText)
     container_objs[i].easyModeText = easyModeText
 
     local hardModeText = display.newText({
@@ -165,7 +172,6 @@ local function make_profile_objects (index , container, profile)
         align = "left"
     })
     hardModeText:setFillColor(1, 1, 1)
-    container:insert(hardModeText)
     container_objs[i].hardModeText = hardModeText
 
     local playButton = widget.newButton({
@@ -183,8 +189,6 @@ local function make_profile_objects (index , container, profile)
         fontSize = 14,
         onRelease = play_game
     })
-    playButton.profileNum = i
-    container:insert(playButton)
     container_objs[i].playButton = playButton
 
     local deleteButton = widget.newButton({
@@ -202,9 +206,7 @@ local function make_profile_objects (index , container, profile)
         onRelease = sensitive_command
     })
     deleteButton.com = delete_profile
-    deleteButton.type = "Delete"
-    deleteButton.profileNum = i
-    container:insert(deleteButton)
+    deleteButton.type = "Delete" -- for sensitive_command function
     container_objs[i].deleteButton = deleteButton
 
     local clearEasyBtn = widget.newButton({
@@ -224,11 +226,8 @@ local function make_profile_objects (index , container, profile)
 
     })
     clearEasyBtn.com = clear_score
-    clearEasyBtn.type = "Clear"
-    clearEasyBtn.mode = "easy"
+    clearEasyBtn.mode = "easy" -- for clear_score function
     clearEasyBtn.anchorX = 0
-    clearEasyBtn.profileNum = i
-    container:insert(clearEasyBtn)
     container_objs[i].clearEasyBtn = clearEasyBtn
 
     local clearHardBtn = widget.newButton({
@@ -247,11 +246,8 @@ local function make_profile_objects (index , container, profile)
         onRelease = sensitive_command,
     })
     clearHardBtn.com = clear_score
-    clearHardBtn.type = "Clear"
-    clearHardBtn.mode = "hard"
+    clearHardBtn.mode = "hard" -- for clear_score function
     clearHardBtn.anchorX = 0
-    clearHardBtn.profileNum = i
-    container:insert(clearHardBtn)
     container_objs[i].clearHardBtn = clearHardBtn
 
     local editNameButton = widget.newButton({
@@ -269,11 +265,17 @@ local function make_profile_objects (index , container, profile)
         fontSize = 8,
         onRelease = edit_profile_name
     })
-    editNameButton.profileNum = i
     editNameButton.anchorX = 0
-    container:insert(editNameButton)
     container_objs[i].editNameButton = editNameButton
+
+    -- Attach profileNum and profileName to each display object in container_objs
+    for _, obj in pairs(container_objs[i]) do
+        obj.profileNum = i
+        obj.profileName = profile.name
+        container:insert(obj)
+    end
 end
+
 
 
 
@@ -304,7 +306,7 @@ local function create_containers(group)
         local profile = profiles[i]
 
 
-        if profile.active then
+        if profile then
             containerOutline:setStrokeColor(0.3, 0.15, 0.05)
             containerOutline.fill = {
                 type = "gradient",
@@ -357,6 +359,10 @@ end
 function scene:create( event )
  
     local sceneGroup = self.view
+
+    if event.params then
+        prevId = event.params.previousId
+    end
     -- Code here runs when the scene is first created but has not yet appeared on screen
     create_containers(sceneGroup)
     local header = d.newText("Profile Selection", display.contentCenterX, h10, native.systemFont, 30)
