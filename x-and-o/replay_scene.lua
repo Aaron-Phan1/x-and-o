@@ -140,7 +140,7 @@ local function initialise_replay(params, group)
     group:insert(replayText)
 
     -- Create and display the difficulty text
-    difficultyText = d.newText(..difficulty:upper(), w2_5, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+    difficultyText = d.newText(difficulty:upper(), w2_5, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
     if difficulty == "easy" then
         difficultyText:setFillColor(0, 1, 0) -- Set text color to green
     elseif difficulty == "hard" then

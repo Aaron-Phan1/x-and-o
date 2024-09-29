@@ -61,6 +61,7 @@ local renew_replay = false
 local FONT = "Arial"
 local TEXT_SIZE = 40
 local BTN_TEXT_SIZE = 16
+local SCORE_TEXT_SIZE = 12
 
 -- display object constants
 local gameOverY = h10 + h2_5
@@ -78,6 +79,8 @@ local winStrikethrough = nil
 
 -- Profile variables
 local profileNum = nil
+local easyTextObjects = {}
+local hardTextObjects = {}
 
 -- forward declaration so that function order doesn't matter
 local computer_fill_hard
@@ -100,6 +103,9 @@ local check_game_state
 local play_move
 local computer_fill_hard
 local computer_fill_easy
+local record_result
+local update_score_display
+local display_score
 local fill
 
 -- Import modules required for making and display moves 
@@ -135,20 +141,61 @@ end
 -- -----------------------------------------------------------------------------------
 ---- Display object creation functions
 -- Difficulty text is displayed at all times, and created after initial difficulty selection
-function display_difficulty()
-
-    display.remove(difficultyText)
-    difficultyText = nil
-
-    local sceneGroup = scene.view
-    difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, 12)
+function display_difficulty(group)
+    difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
     if difficulty == "easy" then
-        difficultyText:setFillColor(0, 1, 0) -- Set text color to green
+        difficultyText:setFillColor(0, 1, 0) -- Set text colour to green
     elseif difficulty == "hard" then
-        difficultyText:setFillColor(1, 0, 0) -- Set text color to red
+        difficultyText:setFillColor(1, 0, 0) -- Set text colour to red
     end
     difficultyText.anchorX = 0
-    sceneGroup:insert(difficultyText)
+    group:insert(difficultyText)
+end
+
+-- Score text is displayed at all times, and created after initial difficulty selection
+function display_score (group)
+    local profiles = M.load_table("profiles.json")
+    local profile = profiles[profileNum]
+    local textTypes = {"win", "loss", "draw"}
+    local colours = {
+        win = {0, 1, 0}, -- Green for wins
+        loss = {1, 0, 0}, -- Red for losses
+        draw = {0, 0, 1} -- Blue for draws
+    }
+
+    local previousHardText = difficultyText
+    local previousEasyText = difficultyText
+
+    for i, textType in ipairs(textTypes) do
+        local hardText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.hard[textType], previousHardText.x + previousHardText.width + w2_5, difficultyText.y, FONT, SCORE_TEXT_SIZE)
+        hardText:setFillColor(unpack(colours[textType]))
+        hardText.anchorX = 0
+        hardText.isVisible = false
+        group:insert(hardText)
+        table.insert(hardTextObjects, hardText)
+        previousHardText = hardText
+
+        local easyText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.easy[textType], previousEasyText.x + previousEasyText.width + w2_5, difficultyText.y, FONT, SCORE_TEXT_SIZE)
+        easyText:setFillColor(unpack(colours[textType]))
+        easyText.anchorX = 0
+        easyText.isVisible = false
+        group:insert(easyText)
+        table.insert(easyTextObjects, easyText)
+        previousEasyText = easyText
+    end
+
+    if difficulty == "hard" then
+        for _, textObject in ipairs(hardTextObjects) do
+            textObject.isVisible = true
+
+        end
+    elseif difficulty == "easy" then
+        for _, textObject in ipairs(easyTextObjects) do
+            textObject.isVisible = true
+        end
+    end
+        
+
 end
 
 -- Undo button is displayed when game is in progress
@@ -245,20 +292,20 @@ function display_game_over_objects(group)
 
     -- Display game over text
     local textOptions = {
-        player_won = {text = "You Win", color = {0, 1, 0}, y},
-        ai_won = {text = "You Lose", color = {1, 0, 0}},
-        draw = {text = "Draw", color = {0, 0, 1}}
+        player_won = {text = "You Win", colour = {0, 1, 0}, y},
+        ai_won = {text = "You Lose", colour = {1, 0, 0}},
+        draw = {text = "Draw", colour = {0, 0, 1}}
     }
 
     local options = textOptions[gameState]
     gameOverText = d.newText(options.text, d.contentCenterX, gameOverY, FONT, TEXT_SIZE)
-    gameOverText:setFillColor(unpack(options.color))
+    gameOverText:setFillColor(unpack(options.colour))
 
     group:insert(gameOverText)
 
     -- Record game over text info to recreate in replay scene
     gameOverTextInfo.options = {text = options.text, x = d.contentCenterX, y = gameOverY, font = FONT, fontSize = TEXT_SIZE}
-    gameOverTextInfo.color = options.color
+    gameOverTextInfo.color = options.colour
 end
 
 ---- End of display object creation functions
@@ -287,9 +334,18 @@ end
 
 -- Change difficulty shortcut button handler -- available after game over
 function change_difficulty(event)
-    difficulty = difficulty == "hard" and "easy" or "hard" -- Toggle difficulty between easy and hard
-    difficultyText.text = "Difficulty: "..difficulty:upper()
+    difficulty = difficulty == "hard" and "easy" or "hard" -- Toggle difficulty
+    difficultyText.text = difficulty:upper()
     difficultyText:setFillColor(difficulty == "easy" and 0 or 1, difficulty == "hard" and 0 or 1, 0)
+
+    -- Toggle visibility of score text objects
+    local showObjects, hideObjects = difficulty == "easy" and easyTextObjects or hardTextObjects, difficulty == "easy" and hardTextObjects or easyTextObjects
+    for _, textObject in ipairs(showObjects) do
+        textObject.isVisible = true
+    end
+    for _, textObject in ipairs(hideObjects) do
+        textObject.isVisible = false
+    end
 end
 
 -- Play again button handler - available after game over
@@ -342,7 +398,7 @@ end
 -- -----------------------------------------------------------------------------------
 ---- Game State functions
 
-local function initialise_game (group)
+function initialise_game (group)
     taps = 0
     whichTurn = X
     gameState = "in_progress"
@@ -371,13 +427,16 @@ end
 
 function game_over(gameState)
     -- Remove display objects from previous game state
-    record_result(gameState)
-    local sceneGroup = scene.view
+    record_result(gameState, gameInstance.difficulty)
+    update_score_display(gameState, gameInstance.difficulty)
+
     display.remove(undoButton)
     undoButton = nil
 
+    -- Bind the result to the game instance object
     gameInstance.result = gameState
     
+    local sceneGroup = scene.view
     -- Draw line through winning cells
     if winningCells then
         drawWinLine(sceneGroup)
@@ -390,7 +449,7 @@ end
 ---Check for win/draw
 function check_game_state (game_board, difficulty, curr_turn, taps)
     -- Check for horizontal, vertical, and diagonal wins
-    win = nil
+    local win = nil
     local winning_combinations = {
         -- Horizontal wins
         {1, 2, 3, direction = "horizontal"}, 
@@ -432,6 +491,37 @@ function check_game_state (game_board, difficulty, curr_turn, taps)
         gameState = "draw"
         game_over(gameState)
     end
+end
+
+-- Update score display for respective difficulty after game over
+function update_score_display(gameState, gameDifficulty)
+    local result = gameState
+    local diff = gameDifficulty
+    local winText, lossText, drawText
+    if diff == "easy" then
+        winText, lossText, drawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
+    elseif diff == "hard" then
+        winText, lossText, drawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
+    end
+
+    -- Update score text display based on game result
+    if result == "player_won" then
+        winText.text = "W: " .. (tonumber(winText.text:match("%d+")) + 1)
+    elseif result == "ai_won" then
+        lossText.text = "L: " .. (tonumber(lossText.text:match("%d+")) + 1)
+    elseif result == "draw" then
+        drawText.text = "D: " .. (tonumber(drawText.text:match("%d+")) + 1)
+    end
+
+    -- Recalculate positions
+    winText.x = difficultyText.x + difficultyText.width + w2_5
+    winText.y = difficultyText.y
+
+    lossText.x = winText.x + winText.width + w2_5
+    lossText.y = difficultyText.y
+
+    drawText.x = lossText.x + lossText.width + w2_5
+    drawText.y = difficultyText.y
 end
 ---- End of game state functions
 -- -----------------------------------------------------------------------------------
@@ -492,20 +582,18 @@ end
 -- -----------------------------------------------------------------------------------
 ---- Data persistence functions
 -- Save game result to file
-
-function record_result (game_result)
+function record_result (gameState, gameDifficulty)
     local profiles = M.load_table("profiles.json")
-
+    local diff = gameDifficulty
     -- Update profile's respective record
     if profiles and profileNum then
         local profile = profiles[profileNum]
         if profile then
-            local diff = gameInstance.difficulty
-            if game_result == "player_won" then
+            if gameState == "player_won" then
                 profile[diff].win = profile[diff].win + 1
-            elseif game_result == "ai_won" then
+            elseif gameState == "ai_won" then
                 profile[diff].loss = profile[diff].loss + 1
-            elseif game_result == "draw" then
+            elseif gameState == "draw" then
                 profile[diff].draw = profile[diff].draw + 1
             end
             M.save_table(profiles, "profiles.json")
@@ -534,17 +622,18 @@ end
 -- -----------------------------------------------------------------------------------
 -- Handle parameter passed from difficulty selection overlay
 function scene:post_difficulty_selection(selected_difficulty)
+    local sceneGroup = scene.view
     -- initial difficulty selection when scene shows
     difficulty = selected_difficulty
-    display_difficulty()
+    display_difficulty(sceneGroup)
+    display_score(sceneGroup)
     select_order()
 end
 
 -- Handle parameter passed from order selection overlay
 function scene:post_order_selection(order)
     local sceneGroup = scene.view
-    local playerOrder = order
-    playerTurn = playerOrder == "first" and X or O 
+    playerTurn = order == "first" and X or O 
     initialise_game(sceneGroup)
 end
 -- create()
@@ -553,7 +642,6 @@ function scene:create( event )
     local sceneGroup = self.view
     local params = event.params
     profileNum = params.profileNum
-    print(profileNum)
 
     ----DRAW LINES FOR BOARD
     local lline = d.newLine(w40, h20, w40, h80)

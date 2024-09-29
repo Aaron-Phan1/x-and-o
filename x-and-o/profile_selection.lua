@@ -45,7 +45,6 @@ local function sensitive_command (event)
 
     command = event.target.com
     command_event = event
-    print(event.target.type, "hi")
     composer.showOverlay("sensitive_command_scene", {isModal = true, effect = "fade", time = 100, params = {type = event.target.type}})
 end
 
