@@ -43,7 +43,8 @@ local buttonGap = w5 + w2_5
 local buttonY = h90
 
 -- Display objects
-local difficultyText = nil
+local easyText = nil
+local hardText = nil
 local buttonObjects = {}
 local undoButton = nil
 local gameOverText = nil
@@ -149,22 +150,27 @@ function change_profile_btn (group)
         }
     )
     changeProfileBtn.anchorX = 0
-    
 
     group:insert(changeProfileBtn)
 end
 
 -- Difficulty text bottom left of screen
 function display_difficulty(group)
-    difficultyText = d.newText(difficulty:upper(), w2_5 , buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
-    if difficulty == "easy" then
-        difficultyText:setFillColor(0, 1, 0) -- Set text colour to green
-    elseif difficulty == "hard" then
-        difficultyText:setFillColor(1, 0, 0) -- Set text colour to red
-    end
-    difficultyText.anchorX = 0
-    group:insert(difficultyText)
+    easyText = d.newText("EASY", w2_5, buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
+    easyText:setFillColor(unpack(easyColour)) -- Set text colour to green
+    easyText.anchorX = 0
+    easyText.isVisible = difficulty == "easy"
+    group:insert(easyText)
+    table.insert(easyTextObjects, easyText)
+
+    hardText = d.newText("HARD", w2_5, buttonY + (buttonHeight/2) + h2_5, FONT, SCORE_TEXT_SIZE)
+    hardText:setFillColor(unpack(hardColour)) -- Set text colour to red
+    hardText.anchorX = 0
+    hardText.isVisible = difficulty == "hard"
+    group:insert(hardText)
+    table.insert(hardTextObjects, hardText)
 end
+
 
 -- The score for selected difficulty - appears to the right of difficulty text
 function display_score (group)
@@ -178,40 +184,28 @@ function display_score (group)
     }
 
     -- To aid in positioning score text objects to the right of the difficulty text
-    local previousHardText = difficultyText
-    local previousEasyText = difficultyText
+    -- Hard text is used since it is longer than easy text
+    local previousHardText = hardText
+    local previousEasyText = hardText
 
     -- Create text objects for each score type - W: L: D:
     for i, textType in ipairs(textTypes) do
-        local hardText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.hard[textType], previousHardText.x + previousHardText.width + w2_5, difficultyText.y, FONT, SCORE_TEXT_SIZE)
+        local hardText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.hard[textType], previousHardText.x + previousHardText.width + w2_5, hardText.y, FONT, SCORE_TEXT_SIZE)
         hardText:setFillColor(unpack(colours[textType]))
         hardText.anchorX = 0
-        hardText.isVisible = false
+        hardText.isVisible = difficulty == "hard"
         group:insert(hardText)
         table.insert(hardTextObjects, hardText)
         previousHardText = hardText
 
-        local easyText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.easy[textType], previousEasyText.x + previousEasyText.width + w2_5, difficultyText.y, FONT, SCORE_TEXT_SIZE)
+        local easyText = d.newText(string.upper(textType:sub(1, 1)) .. ": " .. profile.easy[textType], previousEasyText.x + previousEasyText.width + w2_5, easyText.y, FONT, SCORE_TEXT_SIZE)
         easyText:setFillColor(unpack(colours[textType]))
         easyText.anchorX = 0
-        easyText.isVisible = false
+        easyText.isVisible = difficulty == "easy"
         group:insert(easyText)
         table.insert(easyTextObjects, easyText)
         previousEasyText = easyText
     end
-    -- Display the score for the selected difficulty
-    if difficulty == "hard" then
-        for _, textObject in ipairs(hardTextObjects) do
-            textObject.isVisible = true
-
-        end
-    elseif difficulty == "easy" then
-        for _, textObject in ipairs(easyTextObjects) do
-            textObject.isVisible = true
-        end
-    end
-        
-
 end
 
 -- Undo button is displayed when game is in progress
@@ -225,6 +219,8 @@ function create_undo_button()
             shape = "roundedRect",
             width = buttonWidth,
             height = buttonHeight,
+            strokeWidth = 3,
+            strokeColor = {default = {0.3,0.3,0}, over = {0.3,0.3,0}},
             x = w80,
             y = buttonY,
             fontSize = BTN_TEXT_SIZE
@@ -282,14 +278,14 @@ end
 -- Display game over text and buttons for changing difficulty, playing again, and watching replay
 function display_game_over_objects(group)
     -- Change difficulty button is a shortcut to the difficulty selection overlay
-    local buttonsInfo = {
+    local buttonOptions = {
         {label = "Change\nDifficulty", onRelease = change_difficulty}, 
         {label = "Play\nAgain", onRelease = play_again},
         {label = "Watch\nReplay", onRelease = watch_replay}
     }
 
     local buttonX = w20
-    for i, buttonConfig in ipairs(buttonsInfo) do
+    for i, buttonConfig in ipairs(buttonOptions) do
         local button = widget.newButton(
             {
                 label = buttonConfig.label,
@@ -298,6 +294,9 @@ function display_game_over_objects(group)
                 width = buttonWidth,
                 height = buttonHeight,
                 onRelease = buttonConfig.onRelease,
+                strokeWidth = 3,
+                strokeColor = {default = {0.5,0.5,0.5}, over = {0.7,0.7,0.7}},
+                fillColor = {default = {0.95, 0.95, 0.95}, over = {1, 1, 1}},
                 x = buttonX,
                 y = buttonY,
                 fontSize = BTN_TEXT_SIZE
@@ -364,11 +363,7 @@ end
 
 -- Change difficulty shortcut button handler -- available after game over
 function change_difficulty(event)
-    difficulty = difficulty == "hard" and "easy" or "hard" -- Toggle difficulty
-    difficultyText.text = difficulty:upper()
-    difficultyText:setFillColor(difficulty == "easy" and 0 or 1, difficulty == "hard" and 0 or 1, 0)
-
-    -- Toggle visibility of score text objects
+    difficulty = difficulty == "easy" and "hard" or "easy"
     local showObjects, hideObjects = difficulty == "easy" and easyTextObjects or hardTextObjects, difficulty == "easy" and hardTextObjects or easyTextObjects
     for _, textObject in ipairs(showObjects) do
         textObject.isVisible = true
@@ -617,26 +612,16 @@ end
 -- Recalculate positions of score text objects
 function recalculate_score_pos ()
     -- Recalculate positions
-    local hardWinText, hardLossText, hardDrawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
-    local easyWinText, easyLossText, easyDrawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
-
-    hardWinText.x = difficultyText.x + difficultyText.width + w2_5 -- Align with difficulty text
-    hardWinText.y = difficultyText.y
+    local hardWinText, hardLossText, hardDrawText = hardTextObjects[2], hardTextObjects[3], hardTextObjects[4]
+    local easyWinText, easyLossText, easyDrawText = easyTextObjects[2], easyTextObjects[3], easyTextObjects[4]
 
     hardLossText.x = hardWinText.x + hardWinText.width + w2_5
-    hardLossText.y = difficultyText.y
 
     hardDrawText.x = hardLossText.x + hardLossText.width + w2_5
-    hardDrawText.y = difficultyText.y
-
-    easyWinText.x = difficultyText.x + difficultyText.width + w2_5
-    easyWinText.y = difficultyText.y
 
     easyLossText.x = easyWinText.x + easyWinText.width + w2_5
-    easyLossText.y = difficultyText.y
 
     easyDrawText.x = easyLossText.x + easyLossText.width + w2_5
-    easyDrawText.y = difficultyText.y
 end
 
 -- Update profile display objects with latest data
@@ -644,8 +629,8 @@ function get_latest_profile_data ()
     local profiles = M.load_table("profiles.json")
     local profile = profiles[profileNum]
 
-    local hardWinText, hardLossText, hardDrawText = hardTextObjects[1], hardTextObjects[2], hardTextObjects[3]
-    local easyWinText, easyLossText, easyDrawText = easyTextObjects[1], easyTextObjects[2], easyTextObjects[3]
+    local hardWinText, hardLossText, hardDrawText = hardTextObjects[2], hardTextObjects[3], hardTextObjects[4]
+    local easyWinText, easyLossText, easyDrawText = easyTextObjects[2], easyTextObjects[3], easyTextObjects[4]
 
     hardWinText.text = "W: " .. profile["hard"].win
     hardLossText.text = "L: " .. profile["hard"].loss
