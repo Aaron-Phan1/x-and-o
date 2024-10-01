@@ -27,15 +27,9 @@ end
 local function make_buttons (group, type)
     local command_type = type
     local selection_window = d.newRect(d.contentCenterX, d.contentCenterY, w90, h20 + h2_5)
-    selection_window:setFillColor(0.6, 0.4, 0.2)
-    selection_window.strokeWidth = 3
-    selection_window:setStrokeColor(0.2, 0.1, 0.05)
-    selection_window.fill = {
-        type = "gradient",
-        color1 = { 0.6, 0.3, 0.1 },
-        color2 = { 0.4, 0.2, 0.1 },
-        direction = "down"
-    }
+    selection_window:setFillColor(1,1,1)
+    selection_window.strokeWidth = 4
+    selection_window:setStrokeColor(0.5,0.5,0.5)
 
     
     -- Create text for selecting difficulty
@@ -46,7 +40,7 @@ local function make_buttons (group, type)
         text = "Are you sure you want to clear the score?"
     end
     local selection_text = d.newText(text, d.contentWidth/2, d.contentCenterY - h5 - h2_5, FONT, TEXT_SIZE)
-    selection_text:setFillColor(0.8, 0.8, 0.8)
+    selection_text:setFillColor(0,0,0)
     -- Create buttons for selecting difficulty
     
     local hardButton = widget.newButton(
