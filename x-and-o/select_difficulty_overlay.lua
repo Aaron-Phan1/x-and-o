@@ -36,12 +36,14 @@ function scene:create( event )
 
     -- Create a window for the difficulty selection
     local selection_window = d.newRect(d.contentCenterX, d.contentCenterY, w80, h40)
-    selection_window:setFillColor(0.6, 0.4, 0.2)
+    selection_window:setFillColor(1,1,1)
     selection_window.strokeWidth = 4
+    selection_window:setStrokeColor(0.5, 0.5, 0.5)
     
     -- Create text for selecting difficulty
     local selection_text = d.newText("Select Difficulty", d.contentWidth/2, h30 + h5, FONT, TEXT_SIZE)
-  
+    selection_text:setFillColor(0, 0, 0)
+
     -- Create buttons for selecting difficulty
     local easyButton = widget.newButton(
         {
@@ -55,8 +57,8 @@ function scene:create( event )
             x = display.contentCenterX,
             y = selection_text.y + buttonHeight + element_gap,
             cornerRadius = 2,
-            fillColor = { default={0,1,0,1}, over={0.5,1,0.5,1} },
-            strokeColor = { default={0,0.5,0,1}, over={0.3,0.8,0.3,1} },
+            fillColor = { default={0.45,0.9,1}, over={0.55, 1, 1} },
+            strokeColor = { default={0.25,0.7,0.8}, over={0.35,0.8,0.9} },
             strokeWidth = 4,
             fontSize = BTN_TEXT_SIZE
         }
@@ -75,8 +77,8 @@ function scene:create( event )
             x = display.contentCenterX,
             y = easyButton.y + buttonHeight + element_gap,
             cornerRadius = 2,
-            fillColor = { default={1,0,0,1}, over={1,0.5,0.5,1} },
-            strokeColor = { default={0.5,0,0,1}, over={0.8,0.3,0.3,1} },
+            fillColor = { default={1, 0.45, 0.55}, over={1,0.55,0.65} },
+            strokeColor = { default={0.8, 0.25, 0.35}, over={0.9,0.35,0.45} },
             strokeWidth = 4,
             fontSize = BTN_TEXT_SIZE
         }
