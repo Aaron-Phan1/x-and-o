@@ -42,7 +42,7 @@ local game = require("game_instance")
 local play_move_command = require("play_move_logic")
 
 local function new_game()
-    composer.gotoScene("game_scene")
+    composer.gotoScene("game_scene", {effect = "fade", time = 100})
 end
 
 local function replay_move()
@@ -87,7 +87,10 @@ local function make_buttons (group)
             height = buttonHeight,
             fontSize = BTN_TEXT_SIZE,
             font = FONT,
-            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} },
+            strokeWidth = 3,
+            strokeColor = {default = {0.5,0.5,0.5}, over = {0.7,0.7,0.7}},
+            fillColor = {default = {0.95, 0.95, 0.95}, over = {1, 1, 1}},
         }
     )
     group:insert(backButton)
@@ -102,7 +105,10 @@ local function make_buttons (group)
             height = buttonHeight,
             fontSize = BTN_TEXT_SIZE,
             font = FONT,
-            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} },
+            strokeWidth = 3,
+            strokeColor = {default = {0.5,0.5,0.5}, over = {0.7,0.7,0.7}},
+            fillColor = {default = {0.95, 0.95, 0.95}, over = {1, 1, 1}},
         }
     )
     group:insert(forwardButton)
@@ -118,7 +124,10 @@ local function make_buttons (group)
             height = buttonHeight,
             fontSize = 16,
             font = FONT,
-            labelColor = { default={0, 0, 0}, over={0, 0, 0} }
+            labelColor = { default={0, 0, 0}, over={0, 0, 0} },
+            strokeWidth = 3,
+            strokeColor = {default = {0.5,0.5,0.5}, over = {0.7,0.7,0.7}},
+            fillColor = {default = {0.95, 0.95, 0.95}, over = {1, 1, 1}},
         }
     )
     group:insert(returnButton)
@@ -142,9 +151,9 @@ local function initialise_replay(params, group)
     -- Create and display the difficulty text
     difficultyText = d.newText(difficulty:upper(), w2_5, buttonY + (buttonHeight/2) + h2_5, FONT, 12)
     if difficulty == "easy" then
-        difficultyText:setFillColor(0, 1, 0) -- Set text color to green
+        difficultyText:setFillColor(unpack(easyColour))
     elseif difficulty == "hard" then
-        difficultyText:setFillColor(1, 0, 0) -- Set text color to red
+        difficultyText:setFillColor(unpack(hardColour))
     end
     difficultyText.anchorX = 0
     group:insert(difficultyText)
