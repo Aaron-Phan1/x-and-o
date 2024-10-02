@@ -135,7 +135,7 @@ end
 
 -- Initialise replay scene with game instance data
 local function initialise_replay(params, group)
-    -- get finished game instance variables from params
+    -- get the finished game instance variables from params
     moveHistory = params.gameInstance.moveHistory
     difficulty = params.gameInstance.difficulty
     result = params.gameInstance.result
@@ -252,7 +252,6 @@ end
 function scene:destroy( event )
  
     local sceneGroup = self.view
-    Runtime:removeEventListener("touch", fill)
     -- Code here runs prior to the removal of scene's view
  
 end

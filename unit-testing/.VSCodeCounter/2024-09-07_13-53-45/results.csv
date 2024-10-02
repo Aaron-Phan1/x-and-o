@@ -1,0 +1,13 @@
+"filename", "language", "Lua", "JSON", "XML", "comment", "blank", "total"
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\AndroidResources\res\mipmap-anydpi-v26\ic_launcher.xml", "XML", 0, 0, 5, 0, 0, 5
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\AndroidResources\res\values\values.xml", "XML", 0, 0, 4, 0, 1, 5
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\Images.xcassets\AppIcon.appiconset\Contents.json", "JSON", 0, 108, 0, 0, 0, 108
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\Images.xcassets\Contents.json", "JSON", 0, 6, 0, 0, 0, 6
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\LaunchScreen.storyboardc\designable.storyboard", "XML", 0, 0, 30, 1, 1, 32
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\config.lua", "Lua", 15, 0, 0, 6, 3, 24
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\lunatest.lua", "Lua", 744, 0, 0, 184, 182, 1110
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\main.lua", "Lua", 3, 0, 0, 6, 2, 11
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\modules\myFunctions.lua", "Lua", 101, 0, 0, 15, 27, 143
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\tests\Mytests.lua", "Lua", 3, 0, 0, 0, 1, 4
+"c:\Users\aaron\OneDrive - Edith Cowan University\Computer Science\Year 2 Sem 1\Mobile apps\Assignment\9-deliverable\test\tests\unit-tests.lua", "Lua", 451, 0, 0, 27, 159, 637
+"Total", "-", 1317, 114, 39, 239, 376, 2085
