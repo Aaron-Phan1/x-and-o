@@ -18,8 +18,14 @@ function play_move_command:new(o)
 end
 
 function play_move_command:execute(game_board, group)
-    -- Set cell state to X or O
     local board = game_board
+
+    -- Check if cell is out of bounds or already taken
+    if not board[self.cell_num] or board[self.cell_num][7] ~= self.EMPTY then
+        return board
+    end
+    
+    -- Set cell state to X or O
     board[self.cell_num][7] = self.curr_turn 
     -- Draw X or O in cell
     board[self.cell_num][8] = d.newText(self.curr_turn, board[self.cell_num][3] + w20 / 2, board[self.cell_num][6] + h20 / 2, FONT, adjustedSize)

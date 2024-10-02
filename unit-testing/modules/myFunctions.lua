@@ -287,3 +287,127 @@ function easy_mode_logic:get_best_move()
     return t
 
 end
+
+game = {
+    EMPTY = 0,
+    X = "X",
+    O = "O",
+}
+
+function game:new(o, difficulty, group)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    self.board = board or {
+
+        {"tl", 1, w20, h40, w40, h20,0, nil},
+        {"tm",2, w40,h40,w60,h20,0, nil},
+        {"tr",3, w60,h40,w80,h20,0, nil},
+        
+        {"ml", 4, w20, h60, w40, h40,0, nil},
+        {"mm",5, w40,h60,w60,h40,0, nil},
+        {"mr",6, w60,h60,w80,h40,0, nil},
+        
+        {"bl", 7, w20, h80, w40, h60,0, nil},
+        {"bm",8, w40,h80,w60,h60,0, nil},
+        {"br",9, w60,h80,w80,h60,0, nil}
+    }
+    self.difficulty = difficulty
+    self.sceneGroup = group
+    self.moveHistory = moveHistory or {}
+    self.result = nil
+
+    return o
+end
+
+function game:execute_command(command)
+    self.board = command:execute(self.board, self.sceneGroup)
+    table.insert(self.moveHistory, command)
+end
+
+function game:undo()
+    local command = table.remove(self.moveHistory)
+    self.board = command:undo(self.board)
+end
+
+function game:get_board()
+    return self.board
+end
+
+
+
+local FONT = "Arial"
+local baseFontSize = 48
+local adjustedSize = baseFontSize * display.contentHeight / 480
+d = display
+w1_25 = d.contentWidth * .0125
+w2_5 = d.contentWidth * .025
+w5 = d.contentWidth * .05
+w10 = d.contentWidth * .1
+w20 = d.contentWidth * .2
+w30 = d.contentWidth * .3
+w40 = d.contentWidth * .4
+w50 = d.contentWidth * .5
+w60 = d.contentWidth * .6
+w70 = d.contentWidth * .7
+w80 = d.contentWidth * .8
+w90 = d.contentWidth * .9
+
+h1_25 = d.contentHeight * .0125
+h2_5 = d.contentHeight * .025
+h5 = d.contentHeight * .05
+h10 = d.contentHeight * .1
+h20 = d.contentHeight * .2 
+h30 = d.contentHeight * .3
+h40 = d.contentHeight * .4
+h50 = d.contentHeight * .5
+h60 = d.contentHeight * .6
+h70 = d.contentHeight * .7
+h80 = d.contentHeight * .8
+h90 = d.contentHeight * .9
+
+play_move_command = {
+    EMPTY = 0,
+    X = "X",
+    O = "O",
+    cell_num = nil,
+    curr_turn = nil,
+}
+
+function play_move_command:new(o)
+    o = o or {}
+    setmetatable(o, self)
+    self.__index = self
+    return o
+end
+
+function play_move_command:execute(game_board, group)
+    -- Set cell state to X or O
+    local board = game_board
+    if not board[self.cell_num] or board[self.cell_num][7] ~= self.EMPTY then
+        return board
+    end
+    board[self.cell_num][7] = self.curr_turn 
+    -- Draw X or O in cell
+    board[self.cell_num][8] = d.newText(self.curr_turn, board[self.cell_num][3] + w20 / 2, board[self.cell_num][6] + h20 / 2, FONT, adjustedSize)
+    board[self.cell_num][8]:setFillColor(self.curr_turn == self.O and 1 or 0, 0, self.curr_turn == self.X and 1 or 0)
+    -- Add text to scene group
+    group:insert(board[self.cell_num][8])
+    return board
+end
+
+function play_move_command:undo(game_board)
+    -- Set cell state to EMPTY
+    local board = game_board
+    board[self.cell_num][7] = self.EMPTY
+
+    -- Remove X or O display object from cell
+    display.remove(board[self.cell_num][8])
+    board[self.cell_num][8] = nil
+    return board
+
+end
+
+function play_move_command:get_curr_turn()
+    return self.curr_turn
+end
