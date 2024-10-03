@@ -99,7 +99,6 @@ function scene:create( event )
  
     local sceneGroup = self.view
     local command_type = event.params.type
-    print(command_type)
     make_buttons(sceneGroup, command_type)
     -- Code here runs when the scene is first created but has not yet appeared on screen
     
